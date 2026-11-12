@@ -13,21 +13,27 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     ARMS_SETUP_SECRET: Boolean(process.env.ARMS_SETUP_SECRET),
   };
   const result: Record<string, unknown> = { env, database: 'unchecked', schema: 'unchecked', users: null };
+  let stage = 'create-client';
   try {
     const sql = getSql();
     const host = (() => { try { return new URL((process.env.DATABASE_URL || '').trim().replace(/^['"]+|['"]+$/g, '')).host.replace(/^[^@]*@/, ''); } catch { return 'unparsable URL'; } })();
     result.dbHost = host;
+    stage = 'test-database-query';
     await sql`SELECT 1`;
     result.database = 'ok';
+    stage = 'check-schema';
     const tables = await sql`SELECT to_regclass('public.arms_users') IS NOT NULL AS users, to_regclass('public.arms_app_state') IS NOT NULL AS state, to_regprocedure('public.arms_save_state(jsonb,bigint)') IS NOT NULL AS save_fn`;
     result.schema = tables[0].users && tables[0].state && tables[0].save_fn ? 'ok' : 'missing — run scripts/schema.sql';
-    if (tables[0].users) result.users = (await sql`SELECT COUNT(*)::int AS count FROM arms_users`)[0].count;
+    if (tables[0].users) { stage = 'count-users'; result.users = (await sql`SELECT COUNT(*)::int AS count FROM arms_users`)[0].count; }
+    result.stage = 'complete';
     return res.status(200).json(result);
   } catch (error) {
     const info = describeError(error);
     result.database = 'error';
+    result.stage = stage;
     result.error = info.error;
     result.code = info.code;
+    if (info.detail) result.detail = info.detail;
     return res.status(200).json(result);
   }
 }
