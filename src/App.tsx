@@ -22,7 +22,7 @@ import { ProfileModal } from './components/profile/ProfileModal';
 import { LoginView } from './components/auth/LoginView';
 
 function MainApp() {
-  const { language, dossiers, authenticated, authLoading } = useArchive();
+  const { language, dossiers, authenticated, authLoading, archiveLoading, archiveLoadError, retryArchiveLoad } = useArchive();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [selectedBoxId, setSelectedBoxId] = useState<string>('D42');
@@ -131,6 +131,19 @@ function MainApp() {
         onOpenProfile={() => setProfileOpen(true)}
         breadcrumbs={getBreadcrumbs()}
       />
+
+      {(archiveLoading || archiveLoadError) && (
+        <div className="mx-auto mt-3 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${archiveLoadError ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300' : 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200'}`}>
+            {archiveLoadError ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>تم تسجيل الدخول، لكن تعذر تحميل بيانات الأرشيف: {archiveLoadError}</span>
+                <button onClick={() => void retryArchiveLoad().catch(() => undefined)} className="rounded-lg bg-blue-700 px-3 py-1.5 text-white hover:bg-blue-800">إعادة المحاولة</button>
+              </div>
+            ) : 'تم تسجيل الدخول. جارٍ تحميل بيانات الأرشيف...'}
+          </div>
+        </div>
+      )}
 
       {/* Main Viewport Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">

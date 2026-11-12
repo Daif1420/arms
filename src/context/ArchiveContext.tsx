@@ -22,6 +22,9 @@ interface ArchiveContextType {
   authLoading: boolean;
   setupRequired: boolean;
   authError: string;
+  archiveLoading: boolean;
+  archiveLoadError: string;
+  retryArchiveLoad: () => Promise<void>;
   login: (payload: { action: 'login' | 'setup'; username: string; password: string; name?: string; email?: string; setupSecret?: string }) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -92,6 +95,8 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [authLoading, setAuthLoading] = useState(true);
   const [setupRequired, setSetupRequired] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveLoadError, setArchiveLoadError] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
@@ -106,7 +111,10 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const skipNextSaveRef = useRef(false);
 
   const loadArchiveState = async () => {
-    const r = await apiFetch('/api/state');
+    setArchiveLoading(true);
+    setArchiveLoadError('');
+    try {
+    const r = await apiFetch('/api/state', {}, 60000);
     if (!r.ok || !r.body) throw new Error(errorFrom(r, 'تعذر تحميل بيانات الأرشيف'));
     const parsed = r.body;
     // The state we just loaded is already stored; do not write it straight back.
@@ -122,6 +130,17 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     revisionRef.current = Number(parsed._revision || 0);
     setAuthenticated(Boolean(parsed.currentUser));
     setHydrated(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'تعذر تحميل بيانات الأرشيف.';
+      setArchiveLoadError(message);
+      throw error;
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  const retryArchiveLoad = async () => {
+    await loadArchiveState();
   };
 
   useEffect(() => {
@@ -149,8 +168,14 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!r.body.user) throw new Error('تعذر تسجيل الدخول.');
     setAuthError('');
     setSetupRequired(false);
-    // loadArchiveState sets the current user and the authenticated flag together once data is loaded.
-    await loadArchiveState();
+    // Authentication succeeded and the session cookie is set. Enter the app immediately;
+    // archive data hydration continues separately so a large archive cannot look like a failed login.
+    setCurrentUser(r.body.user);
+    setAuthenticated(true);
+    setHydrated(false);
+    void loadArchiveState().catch(error => {
+      console.error('ARMS archive hydration error:', error);
+    });
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
@@ -551,6 +576,9 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         authLoading,
         setupRequired,
         authError,
+        archiveLoading,
+        archiveLoadError,
+        retryArchiveLoad,
         login,
         logout,
         changePassword,
