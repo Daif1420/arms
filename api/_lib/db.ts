@@ -9,7 +9,7 @@ export function databaseUrl(): string {
   return value;
 }
 
-// One small connection per warm serverless instance. `prepare: false` is required by
+// A few connections per warm serverless instance (so the archive queries can really run in parallel). `prepare: false` is required by
 // Supabase's transaction pooler (port 6543), which does not support prepared statements.
 let client: ReturnType<typeof postgres> | undefined;
 let clientUrl = '';
@@ -18,7 +18,7 @@ export function getSql() {
   const url = databaseUrl();
   if (!url) throw new Error('DATABASE_URL is not configured.');
   if (!client || clientUrl !== url) {
-    client = postgres(url, { ssl: 'require', prepare: false, max: 1, idle_timeout: 20, connect_timeout: 5 });
+    client = postgres(url, { ssl: 'require', prepare: false, max: 4, idle_timeout: 20, connect_timeout: 5 });
     clientUrl = url;
   }
   return client;

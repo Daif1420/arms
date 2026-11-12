@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const user = userRows[0];
     if (!user || !user.active) return res.status(401).json({ error: 'الحساب غير نشط أو لم يعد موجوداً.' });
     if (req.method === 'GET') {
-      const [boxes, dossiers, projects, uploadHistory, notifications, auditLogs, revisionRows] = await Promise.all([
+      const [boxes, dossiers, projects, uploadHistory, notifications, auditLogs, revisionRows, userList] = await Promise.all([
         sql`SELECT data FROM arms_boxes ORDER BY first_job_id ASC`,
         sql`SELECT data FROM arms_dossiers ORDER BY box_code ASC, dossier_number ASC`,
         sql`SELECT data FROM arms_projects ORDER BY job_id ASC`,
@@ -24,8 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         sql`SELECT data FROM arms_notifications ORDER BY created_at DESC`,
         sql`SELECT data FROM arms_audit_logs ORDER BY created_at DESC`,
         sql`SELECT revision FROM arms_app_state WHERE id = 1`,
+        user.role === 'System Admin' ? sql`SELECT id, username, email, name, role, active, last_login FROM arms_users ORDER BY created_at ASC` : Promise.resolve([] as any[]),
       ]);
-      const userList = user.role === 'System Admin' ? await sql`SELECT id, username, email, name, role, active, last_login FROM arms_users ORDER BY created_at ASC` : [];
       return res.status(200).json({
         ...EMPTY_STATE,
         boxes: boxes.map((r: any) => r.data), dossiers: dossiers.map((r: any) => r.data), projects: projects.map((r: any) => r.data),

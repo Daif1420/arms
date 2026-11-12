@@ -17,8 +17,14 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     const sql = getSql();
     const host = (() => { try { return new URL((process.env.DATABASE_URL || '').trim().replace(/^['"]+|['"]+$/g, '')).host.replace(/^[^@]*@/, ''); } catch { return 'unparsable URL'; } })();
     result.dbHost = host;
+    const t0 = Date.now();
     await sql`SELECT 1`;
     result.database = 'ok';
+    result.firstQueryMs = Date.now() - t0; // includes connect + TLS
+    const t1 = Date.now();
+    await sql`SELECT 1`;
+    result.roundTripMs = Date.now() - t1; // pure round trip: this is the cost of EACH query
+    result.vercelRegion = process.env.VERCEL_REGION || 'unknown';
     const tables = await sql`SELECT to_regclass('public.arms_users') IS NOT NULL AS users, to_regclass('public.arms_app_state') IS NOT NULL AS state, to_regprocedure('public.arms_save_state(jsonb,bigint)') IS NOT NULL AS save_fn`;
     result.schema = tables[0].users && tables[0].state && tables[0].save_fn ? 'ok' : 'missing — run scripts/schema.sql';
     if (tables[0].users) result.users = (await sql`SELECT COUNT(*)::int AS count FROM arms_users`)[0].count;
