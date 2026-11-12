@@ -63,7 +63,7 @@ const apiErrorMessage = (body: { error?: string; code?: string; detail?: string 
 
 // fetch wrapper: always times out, always returns parsed JSON (or null) and never throws on non-JSON bodies.
 // Throws only for network failures / timeouts, with a readable message.
-type ApiResult<T = any> = { ok: boolean; status: number; body: T | null; notJson: boolean };
+type ApiResult<T = any> = { ok: boolean; status: number; body: T | null; notJson: boolean; text: string };
 async function apiFetch<T = any>(url: string, init: RequestInit = {}, timeoutMs = 30000): Promise<ApiResult<T>> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -73,7 +73,7 @@ async function apiFetch<T = any>(url: string, init: RequestInit = {}, timeoutMs 
     let body: T | null = null;
     let notJson = false;
     try { body = text ? JSON.parse(text) : null; } catch { notJson = true; }
-    return { ok: response.ok, status: response.status, body, notJson };
+    return { ok: response.ok, status: response.status, body, notJson, text: notJson ? text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : '' };
   } catch (error) {
     if (controller.signal.aborted) throw new Error('انتهت مهلة الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات قاعدة البيانات (DATABASE_URL).');
     throw new Error('تعذر الوصول إلى الخادم. تحقق من الاتصال بالإنترنت.');
@@ -83,7 +83,13 @@ async function apiFetch<T = any>(url: string, init: RequestInit = {}, timeoutMs 
 }
 
 const NOT_JSON_MESSAGE = 'الخادم لم يرد بصيغة JSON: واجهة /api غير متاحة. على الجهاز شغّل المشروع بـ "npm run dev:api" (Vercel CLI) وليس "npm run dev"، أو افتح رابط Vercel بعد النشر.';
-const errorFrom = (r: ApiResult, fallback: string) => r.notJson ? NOT_JSON_MESSAGE : apiErrorMessage(r.body, `${fallback} (${r.status})`);
+const errorFrom = (r: ApiResult, fallback: string) => {
+  if (!r.notJson) return apiErrorMessage(r.body, `${fallback} (${r.status})`);
+  // A 404 on /api means the API is not running at all (plain `npm run dev`). Any other non-JSON reply is a
+  // Vercel platform error (timeout, crash, or response larger than the 4.5 MB limit): show its status and text.
+  if (r.status === 404 || r.status === 200) return NOT_JSON_MESSAGE;
+  return `${fallback}: رد الخادم برمز ${r.status} بدل JSON${r.text ? ` — ${r.text}` : ''}. غالباً انتهت مهلة الدالة أو تجاوز حجم الرد 4.5MB؛ راجع Logs في Vercel.`;
+};
 
 const ArchiveContext = createContext<ArchiveContextType | undefined>(undefined);
 
