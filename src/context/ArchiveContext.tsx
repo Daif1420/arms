@@ -1,6 +1,6 @@
 /**
  * ARMS - Archive State Context & Database Engine
- * Handles persistent state, permissions, recalculations, audit trails, and notifications.
+ * Handles persistent state, permissions, recalculations, audit trails, notifications, and in-app toasts.
  */
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -15,18 +15,35 @@ import {
   ProjectStatus,
 } from '../types';
 import { buildBoxStructure } from '../utils/archiveCalculations';
-import { apiFetch, errorFrom, loadArchiveSnapshot } from '../utils/archiveApi';
+import { apiFetch, errorFrom, loadArchiveSnapshot, setSessionToken } from '../utils/archiveApi';
+
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+}
 
 interface ArchiveContextType {
   currentUser: User;
   authenticated: boolean;
   authLoading: boolean;
   setupRequired: boolean;
+  storageMode: 'local' | 'postgres';
   authError: string;
   archiveLoading: boolean;
   archiveLoadError: string;
+  toasts: ToastMessage[];
+  dismissToast: (id: string) => void;
+  showToast: (message: string, type?: ToastMessage['type']) => void;
   retryArchiveLoad: () => Promise<void>;
-  login: (payload: { action: 'login' | 'setup'; username: string; password: string; name?: string; email?: string; setupSecret?: string }) => Promise<void>;
+  login: (payload: {
+    action: 'login' | 'setup';
+    username: string;
+    password: string;
+    name?: string;
+    email?: string;
+    setupSecret?: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   users: User[];
@@ -39,7 +56,6 @@ interface ArchiveContextType {
   language: 'ar' | 'en';
   setLanguage: (lang: 'ar' | 'en') => void;
   setCurrentUser: (user: User) => void;
-  // Actions
   importExcelProjects: (
     importedRows: { jobId: number; dateApproved: string | null; archiveStatus?: ProjectStatus }[],
     fileName: string,
@@ -58,16 +74,17 @@ interface ArchiveContextType {
 
 const ArchiveContext = createContext<ArchiveContextType | undefined>(undefined);
 
-
 export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const guestUser: User = { id: 'guest', username: '', email: '', name: '', role: 'Viewer', active: false, lastLogin: 'Never' };
   const [currentUser, setCurrentUser] = useState<User>(guestUser);
   const [authenticated, setAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [setupRequired, setSetupRequired] = useState(false);
+  const [storageMode, setStorageMode] = useState<'local' | 'postgres'>('postgres');
   const [authError, setAuthError] = useState('');
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveLoadError, setArchiveLoadError] = useState('');
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
@@ -78,27 +95,35 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const [hydrated, setHydrated] = useState(false);
   const revisionRef = useRef(0);
-
   const skipNextSaveRef = useRef(false);
+
+  const dismissToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const showToast = (message: string, type: ToastMessage['type'] = 'info') => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setToasts(prev => [...prev.slice(-3), { id, message, type }]);
+    window.setTimeout(() => dismissToast(id), 4500);
+  };
 
   const loadArchiveState = async () => {
     setArchiveLoading(true);
     setArchiveLoadError('');
     try {
-    const parsed = await loadArchiveSnapshot();
-    // The state we just loaded is already stored; do not write it straight back.
-    skipNextSaveRef.current = true;
-    setBoxes(parsed.boxes || []);
-    setDossiers(parsed.dossiers || []);
-    setProjects(parsed.projects || []);
-    setUploadHistory(parsed.uploadHistory || []);
-    setNotifications(parsed.notifications || []);
-    setAuditLogs(parsed.auditLogs || []);
-    setCurrentUser(parsed.currentUser || guestUser);
-    setUsers(parsed.users || (parsed.currentUser ? [parsed.currentUser] : []));
-    revisionRef.current = Number(parsed._revision || 0);
-    setAuthenticated(Boolean(parsed.currentUser));
-    setHydrated(true);
+      const parsed = await loadArchiveSnapshot();
+      skipNextSaveRef.current = true;
+      setBoxes(parsed.boxes || []);
+      setDossiers(parsed.dossiers || []);
+      setProjects(parsed.projects || []);
+      setUploadHistory(parsed.uploadHistory || []);
+      setNotifications(parsed.notifications || []);
+      setAuditLogs(parsed.auditLogs || []);
+      setCurrentUser(parsed.currentUser || guestUser);
+      setUsers(parsed.users || (parsed.currentUser ? [parsed.currentUser] : []));
+      revisionRef.current = Number(parsed._revision || 0);
+      setAuthenticated(Boolean(parsed.currentUser));
+      setHydrated(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'تعذر تحميل بيانات الأرشيف.';
       setArchiveLoadError(message);
@@ -120,7 +145,14 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (cancelled) return;
         if (!r.ok || !r.body) throw new Error(errorFrom(r, 'خدمة تسجيل الدخول غير متاحة'));
         setSetupRequired(Boolean(r.body.setupRequired));
-        if (r.body.user) await loadArchiveState();
+        if (r.body.storageMode === 'local' || r.body.storageMode === 'postgres') {
+          setStorageMode(r.body.storageMode);
+        }
+        if (r.body.user) {
+          await loadArchiveState();
+        } else {
+          setSessionToken(null);
+        }
       } catch (error) {
         console.error('ARMS initialization error:', error);
         if (!cancelled) setAuthError(error instanceof Error ? error.message : 'تعذر بدء التطبيق.');
@@ -128,17 +160,34 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (!cancelled) setAuthLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = async (payload: { action: 'login' | 'setup'; username: string; password: string; name?: string; email?: string; setupSecret?: string }) => {
-    const r = await apiFetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const login = async (payload: {
+    action: 'login' | 'setup';
+    username: string;
+    password: string;
+    name?: string;
+    email?: string;
+    setupSecret?: string;
+  }) => {
+    const r = await apiFetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     if (!r.ok || !r.body) throw new Error(errorFrom(r, 'تعذر تسجيل الدخول'));
     if (!r.body.user) throw new Error('تعذر تسجيل الدخول.');
+    if (typeof r.body.sessionToken === 'string' && r.body.sessionToken) {
+      setSessionToken(r.body.sessionToken);
+    }
     setAuthError('');
     setSetupRequired(false);
-    // Authentication succeeded and the session cookie is set. Enter the app immediately;
-    // archive data hydration continues separately so a large archive cannot look like a failed login.
+    if (r.body.storageMode === 'local' || r.body.storageMode === 'postgres') {
+      setStorageMode(r.body.storageMode);
+    }
     setCurrentUser(r.body.user);
     setAuthenticated(true);
     setHydrated(false);
@@ -148,45 +197,87 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const r = await apiFetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'change-password', currentPassword, newPassword }) });
+    const r = await apiFetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'change-password', currentPassword, newPassword }),
+    });
     if (!r.ok) throw new Error(errorFrom(r, 'تعذر تغيير كلمة المرور'));
   };
 
   const logout = async () => {
-    try { await apiFetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }, 8000); } catch { /* clear local state anyway */ }
+    try {
+      await apiFetch(
+        '/api/auth',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) },
+        8000
+      );
+    } catch {
+      /* clear local state anyway */
+    }
+    setSessionToken(null);
     setAuthenticated(false);
     setCurrentUser(guestUser);
     setUsers([]);
-    setBoxes([]); setDossiers([]); setProjects([]); setUploadHistory([]); setNotifications([]); setAuditLogs([]);
+    setBoxes([]);
+    setDossiers([]);
+    setProjects([]);
+    setUploadHistory([]);
+    setNotifications([]);
+    setAuditLogs([]);
     setHydrated(false);
   };
 
-  // Debounced persistence with optimistic concurrency. A stale browser cannot overwrite a newer snapshot.
   const canWrite = currentUser.role === 'System Admin' || currentUser.role === 'Archive Manager';
   useEffect(() => {
     if (!hydrated || !authenticated || !canWrite) return;
-    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return; }
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const r = await apiFetch('/api/state', {
-          method: 'PUT', signal: controller.signal,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ boxes, dossiers, projects, uploadHistory, notifications, auditLogs, _revision: revisionRef.current }),
-        }, 60000);
-        if (r.status === 401) { window.location.reload(); return; }
-        if (r.status === 409) {
-          alert('تم تعديل البيانات من جلسة أخرى. سيتم إعادة تحميل أحدث نسخة لحماية البيانات.');
+        const r = await apiFetch(
+          '/api/state',
+          {
+            method: 'PUT',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              boxes,
+              dossiers,
+              projects,
+              uploadHistory,
+              notifications,
+              auditLogs,
+              _revision: revisionRef.current,
+            }),
+          },
+          60000
+        );
+        if (r.status === 401) {
+          setSessionToken(null);
           window.location.reload();
+          return;
+        }
+        if (r.status === 409) {
+          showToast('تم تعديل البيانات من جلسة أخرى. أعد تحميل الصفحة لحماية البيانات.', 'warning');
           return;
         }
         if (!r.ok || !r.body) throw new Error(errorFrom(r, 'فشل حفظ البيانات'));
         revisionRef.current = Number(r.body.revision);
       } catch (error) {
-        if (!controller.signal.aborted) console.error('ARMS database save error:', error);
+        if (!controller.signal.aborted) {
+          console.error('ARMS database save error:', error);
+          showToast(error instanceof Error ? error.message : 'تعذر حفظ التعديلات.', 'error');
+        }
       }
     }, 650);
-    return () => { window.clearTimeout(timer); controller.abort(); };
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [hydrated, authenticated, canWrite, boxes, dossiers, projects, uploadHistory, notifications, auditLogs]);
 
   const addAuditLog = (
@@ -234,34 +325,31 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setNotifications(prev => [notif, ...prev]);
   };
 
-  /**
-   * Creates a new manual box with 300 slots
-   */
   const createBox = (boxCode: string, firstJobId: number): Box => {
     const match = /^D(\d+)$/.exec(boxCode);
     const expectedNumber = 42 + Math.floor((firstJobId - 35500) / 300);
-    if (!match || firstJobId < 35500 || (firstJobId - 35500) % 300 !== 0 || Number(match[1]) !== expectedNumber || boxes.some(b => b.boxCode === boxCode) || (expectedNumber > 42 && !boxes.some(b => b.boxCode === `D${expectedNumber - 1}`))) {
+    if (
+      !match ||
+      firstJobId < 35500 ||
+      (firstJobId - 35500) % 300 !== 0 ||
+      Number(match[1]) !== expectedNumber ||
+      boxes.some(b => b.boxCode === boxCode) ||
+      (expectedNumber > 42 && !boxes.some(b => b.boxCode === `D${expectedNumber - 1}`))
+    ) {
       throw new Error('Box must follow fixed sequence: D42 starts at 35500 and each next box advances exactly 300 Job IDs.');
     }
     const emptyMap = new Map<number, { dateApproved: string | null; sourceUpload?: string; status?: ProjectStatus }>();
-    const { box: newBox, dossiers: newDossiers, projects: newProjects } = buildBoxStructure(
-      boxCode,
-      firstJobId,
-      emptyMap
-    );
+    const { box: newBox, dossiers: newDossiers, projects: newProjects } = buildBoxStructure(boxCode, firstJobId, emptyMap);
 
     setBoxes(prev => [...prev, newBox]);
     setDossiers(prev => [...prev, ...newDossiers]);
     setProjects(prev => [...prev, ...newProjects]);
 
     addAuditLog('Create Box', 'Box', boxCode, `Created new Box ${boxCode} starting at #${firstJobId}`);
+    showToast(language === 'ar' ? `تم إنشاء البوكس ${boxCode} بنجاح.` : `Box ${boxCode} created.`, 'success');
     return newBox;
   };
 
-  /**
-   * Imports Excel rows (Job ID, Date Approved)
-   * Enforces 300-slot box logic, gap discovery (missing vs pending), deduplication, and recalculations.
-   */
   const importExcelProjects = (
     importedRows: { jobId: number; dateApproved: string | null; archiveStatus?: ProjectStatus }[],
     fileName: string,
@@ -277,10 +365,16 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const groups = new Map<number, typeof importedRows>();
     importedRows.forEach(item => {
-      if (!Number.isInteger(item.jobId) || item.jobId < FIRST_BOX_ID) { rejectedCount++; return; }
+      if (!Number.isInteger(item.jobId) || item.jobId < FIRST_BOX_ID) {
+        rejectedCount++;
+        return;
+      }
       const boxIndex = Math.floor((item.jobId - FIRST_BOX_ID) / BOX_SIZE);
       const expectedCode = `D${FIRST_BOX_NUMBER + boxIndex}`;
-      if (targetBoxCode && targetBoxCode !== 'auto' && targetBoxCode !== expectedCode) { rejectedCount++; return; }
+      if (targetBoxCode && targetBoxCode !== 'auto' && targetBoxCode !== expectedCode) {
+        rejectedCount++;
+        return;
+      }
       const group = groups.get(boxIndex) || [];
       group.push(item);
       groups.set(boxIndex, group);
@@ -292,7 +386,10 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     for (const [boxIndex, rows] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
       const expectedPrevious = `D${FIRST_BOX_NUMBER + boxIndex - 1}`;
-      if (boxIndex > 0 && !updatedBoxes.some(b => b.boxCode === expectedPrevious)) { rejectedCount += rows.length; continue; }
+      if (boxIndex > 0 && !updatedBoxes.some(b => b.boxCode === expectedPrevious)) {
+        rejectedCount += rows.length;
+        continue;
+      }
       const firstJobId = FIRST_BOX_ID + boxIndex * BOX_SIZE;
       const lastJobId = firstJobId + BOX_SIZE - 1;
       const boxCode = `D${FIRST_BOX_NUMBER + boxIndex}`;
@@ -317,12 +414,14 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       rows.forEach(item => {
-        if (item.jobId < firstJobId || item.jobId > lastJobId) { rejectedCount++; return; }
+        if (item.jobId < firstJobId || item.jobId > lastJobId) {
+          rejectedCount++;
+          return;
+        }
         const existing = currentById.get(item.jobId);
         const alreadyImported = existing && existing.sourceUpload !== 'Reserved Slot' && existing.sourceUpload !== 'System Slot';
         if (alreadyImported) {
           duplicateCount++;
-          // Re-uploads never overwrite an existing status or placement.
           return;
         }
         importedCount++;
@@ -334,12 +433,19 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
 
       const recalculated = buildBoxStructure(boxCode, firstJobId, archivedMap, box);
-      updatedBoxes = updatedBoxes.map(b => b.boxCode === boxCode ? recalculated.box : b);
+      updatedBoxes = updatedBoxes.map(b => (b.boxCode === boxCode ? recalculated.box : b));
       updatedDossiers = [...updatedDossiers.filter(d => d.boxId !== boxCode), ...recalculated.dossiers];
       updatedProjects = [...updatedProjects.filter(p => p.boxId !== boxCode), ...recalculated.projects];
 
       if (recalculated.box.missingProjects > 0) {
-        addNotification('Missing Projects Found', `Box ${boxCode} has ${recalculated.box.missingProjects} reserved gaps before the highest imported Job ID.`, 'missing', 'warning', 'boxes', boxCode);
+        addNotification(
+          'Missing Projects Found',
+          `Box ${boxCode} has ${recalculated.box.missingProjects} reserved gaps before the highest imported Job ID.`,
+          'missing',
+          'warning',
+          'boxes',
+          boxCode
+        );
       }
     }
 
@@ -362,18 +468,19 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setBoxes(updatedBoxes);
     setDossiers(updatedDossiers);
     setProjects(updatedProjects);
-    addAuditLog('Import Excel', 'Import', uploadRec.id, `Imported ${importedCount} projects from ${fileName}. Duplicates: ${duplicateCount}. Rejected: ${rejectedCount}.`);
+    addAuditLog(
+      'Import Excel',
+      'Import',
+      uploadRec.id,
+      `Imported ${importedCount} projects from ${fileName}. Duplicates: ${duplicateCount}. Rejected: ${rejectedCount}.`
+    );
     addNotification('Import Processed', `Imported ${importedCount} projects from ${fileName}.`, 'import', 'success', 'import');
     return { importedCount, duplicateCount, newBoxesCreated, rejectedCount };
   };
 
-  /**
-   * Force Close Box (Admin only)
-   * Does NOT alter missing projects or make incomplete dossiers archived!
-   */
   const forceCloseBox = (boxId: string, reason: string): boolean => {
     if (currentUser.role !== 'System Admin') {
-      alert('Only System Admin can execute Force Close.');
+      showToast(language === 'ar' ? 'الإغلاق الإداري متاح لمدير النظام فقط.' : 'Only System Admin can execute Force Close.', 'error');
       return false;
     }
 
@@ -400,13 +507,10 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     addAuditLog('Force Close Box', 'Force Close', boxId, `Force closed box ${boxId}. Reason: ${reason}`, beforeState, afterState);
     addNotification('Box Force Closed', `Box ${boxId} was administratively force-closed. Reason: ${reason}`, 'force_close', 'info', 'boxes', boxId);
-
+    showToast(language === 'ar' ? `تم إغلاق البوكس ${boxId} إدارياً.` : `Box ${boxId} force-closed.`, 'info');
     return true;
   };
 
-  /**
-   * Reopen a Force Closed Box
-   */
   const reopenBox = (boxId: string): boolean => {
     if (currentUser.role !== 'System Admin') return false;
 
@@ -426,12 +530,10 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     addAuditLog('Reopen Box', 'Box', boxId, `Reopened force-closed box ${boxId}`);
+    showToast(language === 'ar' ? `تم إعادة فتح البوكس ${boxId}.` : `Box ${boxId} reopened.`, 'success');
     return true;
   };
 
-  /**
-   * Manually update project status
-   */
   const updateProjectStatus = (jobId: number, newStatus: ProjectStatus, note?: string) => {
     const project = projects.find(p => p.jobId === jobId);
     if (!project) return;
@@ -457,7 +559,6 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setProjects(updatedProjects);
 
-    // Recompute the parent dossier and box counts
     const parentBox = boxes.find(b => b.boxCode === project.boxId);
     if (parentBox) {
       const boxProjects = updatedProjects.filter(p => p.boxId === parentBox.boxCode);
@@ -479,7 +580,6 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         )
       );
 
-      // Recompute dossiers for this box
       setDossiers(prev =>
         prev.map(d => {
           if (d.boxId === parentBox.boxCode) {
@@ -506,6 +606,7 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
       String(jobId),
       `Updated Job #${jobId} status from ${beforeStatus} to ${newStatus}. Note: ${note || 'None'}`
     );
+    showToast(language === 'ar' ? `تم تحديث حالة المشروع #${jobId}.` : `Project #${jobId} updated.`, 'success');
   };
 
   const markNotificationAsRead = (id: string) => {
@@ -517,16 +618,24 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const addUser = async (userData: Omit<User, 'id' | 'lastLogin'>, password: string) => {
-    const r = await apiFetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...userData, password }) });
+    const r = await apiFetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...userData, password }),
+    });
     if (!r.ok || !r.body?.user) throw new Error(errorFrom(r, 'تعذر إنشاء المستخدم'));
     setUsers(prev => [...prev, r.body.user]);
     addAuditLog('Add User', 'User', r.body.user.id, `Created user account for ${r.body.user.name} (${r.body.user.role})`);
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    const r = await apiFetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...updates }) });
+    const r = await apiFetch('/api/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updates }),
+    });
     if (!r.ok || !r.body?.user) throw new Error(errorFrom(r, 'تعذر تحديث المستخدم'));
-    setUsers(prev => prev.map(u => u.id === id ? r.body.user : u));
+    setUsers(prev => prev.map(u => (u.id === id ? r.body.user : u)));
     addAuditLog('Update User', 'User', id, `Updated account settings for user ID ${id}`);
   };
 
@@ -536,7 +645,6 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await updateUser(id, { active: !target.active });
   };
 
-
   return (
     <ArchiveContext.Provider
       value={{
@@ -544,9 +652,13 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         authenticated,
         authLoading,
         setupRequired,
+        storageMode,
         authError,
         archiveLoading,
         archiveLoadError,
+        toasts,
+        dismissToast,
+        showToast,
         retryArchiveLoad,
         login,
         logout,

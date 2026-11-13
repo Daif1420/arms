@@ -124,29 +124,29 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
     pdf.text('A R C H I V E   B O X', leftX + leftW / 2, leftY + leftH - 3.4, { align: 'center' });
   } else {
     // Dossier Label
-    // Upper section: Word "Dossier" bold medium, then huge number
+    // Upper section: Word "Dossier" bold, then large bold dossier number
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9.5);
-    pdf.text('Dossier', leftX + leftW / 2, leftY + 5.2, { align: 'center' });
+    pdf.setFontSize(10.2);
+    pdf.text('Dossier', leftX + leftW / 2, 18.7, { align: 'center' });
 
-    pdf.setFontSize(28);
+    pdf.setFontSize(41);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(String(data.dossierNumber || 1), leftX + leftW / 2, divY - 2.5, { align: 'center' });
+    pdf.text(String(data.dossierNumber || 1), leftX + leftW / 2, 32.6, { align: 'center' });
 
-    // Lower section: "Box" small bold, and below it Box code bold
-    pdf.setFontSize(6.5);
-    pdf.text('Box', leftX + leftW / 2, divY + 3.4, { align: 'center' });
+    // Lower section: "Box" bold, and below it larger Box code bold
+    pdf.setFontSize(7.2);
+    pdf.text('Box', leftX + leftW / 2, 38.3, { align: 'center' });
 
-    pdf.setFontSize(10.5);
-    pdf.text(data.boxCode, leftX + leftW / 2, leftY + leftH - 2.2, { align: 'center' });
+    pdf.setFontSize(13);
+    pdf.text(data.boxCode, leftX + leftW / 2, 43.3, { align: 'center' });
   }
 
-  // 4. QR Code: top right, X ≈ 62 to 82, Y ≈ 15 to 34
-  const qrX = 62.5;
+  // 4. QR Code: centered directly over Range Box (center X = 72.45)
+  const qrX = 63.2;
   const qrY = 14.8;
   const qrSize = 18.5;
-  const qrBracketPad = 1.6;
+  const qrBracketPad = 1.7;
 
   // Corner brackets around QR code
   drawCornerBrackets(
@@ -155,7 +155,7 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
     qrY - qrBracketPad,
     qrSize + qrBracketPad * 2,
     qrSize + qrBracketPad * 2,
-    2.8
+    3.0
   );
 
   const qrText = getQRCodeText(data);
@@ -172,32 +172,32 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
   const rangeW = 43.1;
   const rangeH = 8.6;
   const rangeR = 1.8;
-  const rangeMidX = 72.4;
+  const rangeMidX = 72.45;
 
   pdf.setDrawColor(0, 0, 0);
   pdf.setLineWidth(0.45);
   pdf.roundedRect(rangeX, rangeY, rangeW, rangeH, rangeR, rangeR, 'S');
 
-  // Vertical dividing line at X ≈ 72.4
+  // Vertical dividing line at X = 72.45
   pdf.line(rangeMidX, rangeY, rangeMidX, rangeY + rangeH);
 
   // FROM Section
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(5.8);
+  pdf.setFontSize(6.5);
   const leftHalfCenter = rangeX + (rangeMidX - rangeX) / 2;
-  pdf.text('FROM', leftHalfCenter, rangeY + 2.6, { align: 'center' });
+  pdf.text('FROM', leftHalfCenter, 38.7, { align: 'center' });
 
-  pdf.setFontSize(11.5);
-  pdf.text(String(data.fromJobId), leftHalfCenter, rangeY + 7.2, { align: 'center' });
+  pdf.setFontSize(14);
+  pdf.text(String(data.fromJobId), leftHalfCenter, 43.6, { align: 'center' });
 
   // TO Section
   const rightHalfCenter = rangeMidX + (rangeX + rangeW - rangeMidX) / 2;
-  pdf.setFontSize(5.8);
-  pdf.text('TO', rightHalfCenter, rangeY + 2.6, { align: 'center' });
+  pdf.setFontSize(6.5);
+  pdf.text('TO', rightHalfCenter, 38.7, { align: 'center' });
 
-  pdf.setFontSize(11.5);
-  pdf.text(String(data.toJobId), rightHalfCenter, rangeY + 7.2, { align: 'center' });
+  pdf.setFontSize(14);
+  pdf.text(String(data.toJobId), rightHalfCenter, 43.6, { align: 'center' });
 }
 
 /**

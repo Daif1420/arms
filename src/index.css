@@ -1,11 +1,32 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-brand-blue: #0B56A8;
+  --color-brand-blue-hover: #094488;
+  --color-brand-blue-soft: #EAF2FB;
+  --color-brand-red: #E52225;
+  --color-brand-amber: #F5A614;
+  --color-brand-charcoal: #3F4144;
+  --font-sans: 'Inter', 'Cairo', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --font-mono: 'Inter', 'Cairo', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
 @layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  html {
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #F8FAFC;
+    color: #1E242B;
+  }
+
+  .dark body {
+    background-color: #0B111A;
+    color: #F1F5F9;
   }
 }
 

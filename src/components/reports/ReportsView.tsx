@@ -3,11 +3,17 @@
  * All 12 specialized archive reports with filters and multi-format export (Excel, PDF, Print).
  */
 
-import React, { useState } from 'react';
-import { FileBarChart, Download, Printer, FileSpreadsheet, Search } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FileBarChart, Download, Printer, FileSpreadsheet, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
+import logoColor from '../../assets/logo.png';
+import {
+  exportReportToExcel,
+  exportReportToPDF,
+  paginateReportRows,
+  REPORT_ROWS_PER_PAGE,
+} from '../../utils/reportExporter';
 
 export type ReportType =
   | 'archived-projects'
@@ -24,11 +30,14 @@ export type ReportType =
   | 'force-close-report';
 
 export const ReportsView: React.FC = () => {
-  const { boxes, dossiers, projects, uploadHistory, auditLogs, language } = useArchive();
+  const { boxes, dossiers, projects, uploadHistory, auditLogs, currentUser, language, showToast } = useArchive();
 
   const [activeReport, setActiveReport] = useState<ReportType>('archived-projects');
   const [searchTerm, setSearchTerm] = useState('');
   const [boxFilter, setBoxFilter] = useState('all');
+  const [previewPage, setPreviewPage] = useState(1);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [printingReport, setPrintingReport] = useState(false);
 
   const reportOptions: { id: ReportType; titleAr: string; titleEn: string; category: string }[] = [
     { id: 'archived-projects', titleAr: '1. تقرير المشاريع المؤرشفة', titleEn: '1. Archived Projects', category: 'Projects' },
@@ -47,7 +56,7 @@ export const ReportsView: React.FC = () => {
 
   // Build report dataset based on selected report
   let reportColumns: string[] = [];
-  let reportData: any[] = [];
+  let reportData: Record<string, unknown>[] = [];
 
   switch (activeReport) {
     case 'archived-projects':
@@ -65,7 +74,7 @@ export const ReportsView: React.FC = () => {
       break;
 
     case 'missing-projects':
-      reportColumns = ['Job ID', 'Box Code', 'Dossier #', 'Slot #', 'Status', 'Gap Proof'];
+      reportColumns = ['Job ID', 'Box Code', 'Dossier #', 'Slot #', 'Status'];
       reportData = projects
         .filter(p => p.status === 'Missing' && (boxFilter === 'all' || p.boxId === boxFilter))
         .map(p => ({
@@ -74,7 +83,6 @@ export const ReportsView: React.FC = () => {
           'Dossier #': p.dossierNumber,
           'Slot #': p.slotIndex + 1,
           'Status': 'Missing',
-          'Gap Proof': 'Higher Job IDs exist in sequence',
         }));
       break;
 
@@ -221,48 +229,233 @@ export const ReportsView: React.FC = () => {
     return Object.values(row).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()));
   });
 
-  // Export to Excel
+  const activeOption = reportOptions.find(r => r.id === activeReport)!;
+  const cleanTitleEn = activeOption.titleEn.replace(/^\d+\.\s*/, '');
+  const formattedPrintDate = new Date().toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const buildExportOptions = () => ({
+    reportId: activeReport,
+    reportTitleEn: activeOption.titleEn,
+    reportTitleAr: activeOption.titleAr,
+    language,
+    columns: reportColumns,
+    rows: filteredReportData,
+    boxFilter,
+    totalBoxes: boxes.length,
+    preparedBy: currentUser?.name || 'System Admin',
+    printDate: formattedPrintDate,
+  });
+
+  // Export to Excel matching the clean A4 template
   const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredReportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Report');
-    XLSX.writeFile(wb, `ARMS_${activeReport}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const fileName = exportReportToExcel(buildExportOptions());
+    showToast(
+      language === 'ar' ? `تم تصدير التقرير بصيغة Excel: ${fileName}` : `Excel report downloaded: ${fileName}`,
+      'success'
+    );
   };
 
-  // Export to PDF
-  const handleExportPDF = () => {
-    const pdf = new jsPDF({ orientation: 'landscape' });
-    pdf.setFontSize(14);
-    pdf.text(`ARMS Report: ${activeReport.toUpperCase().replace('-', ' ')}`, 14, 15);
-    pdf.setFontSize(9);
-    pdf.text(`Generated on: ${new Date().toLocaleString()} · Total Records: ${filteredReportData.length}`, 14, 22);
+  // Export to A4 Portrait PDF
+  const handleExportPDF = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const fileName = await exportReportToPDF(buildExportOptions());
+      showToast(
+        language === 'ar' ? `تم تصدير التقرير بصيغة PDF (A4): ${fileName}` : `A4 PDF report downloaded: ${fileName}`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to generate report PDF:', err);
+      showToast(language === 'ar' ? 'تعذر إنشاء ملف PDF للتقرير.' : 'Failed generating report PDF.', 'error');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
-    // Simple formatted table
-    let y = 30;
-    const colWidth = 270 / reportColumns.length;
+  // Isolated A4 Portrait print portal matching the formal clean sheet
+  useEffect(() => {
+    if (!printingReport) return;
 
-    // Header
-    pdf.setFont('helvetica', 'bold');
-    reportColumns.forEach((col, i) => {
-      pdf.text(col, 14 + i * colWidth, y);
-    });
-
-    pdf.line(14, y + 2, 280, y + 2);
-    y += 7;
-
-    pdf.setFont('helvetica', 'normal');
-    filteredReportData.slice(0, 25).forEach(row => {
-      reportColumns.forEach((col, i) => {
-        pdf.text(String(row[col] ?? '').slice(0, 25), 14 + i * colWidth, y);
-      });
-      y += 6;
-      if (y > 190) {
-        pdf.addPage();
-        y = 20;
+    const styleEl = document.createElement('style');
+    styleEl.id = 'arms-formal-report-print-style';
+    styleEl.textContent = `
+      @media print {
+        @page { size: A4 portrait; margin: 10mm; }
+        html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; }
+        body > *:not(#arms-report-print-portal) { display: none !important; }
+        #arms-report-print-portal { display: block !important; position: static !important; margin: 0 !important; padding: 0 !important; }
       }
+    `;
+    document.head.appendChild(styleEl);
+
+    const cleanup = () => {
+      styleEl.remove();
+      setPrintingReport(false);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+
+    let timerId = 0;
+    const rafId = window.requestAnimationFrame(() => {
+      timerId = window.setTimeout(() => {
+        window.print();
+      }, 90);
     });
 
-    pdf.save(`ARMS_${activeReport}_Report.pdf`);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timerId);
+      window.removeEventListener('afterprint', cleanup);
+      styleEl.remove();
+    };
+  }, [printingReport]);
+
+  const scopeLabel = boxFilter === 'all' ? 'All Boxes' : `Box ${boxFilter}`;
+
+  const reportPages = paginateReportRows(filteredReportData, REPORT_ROWS_PER_PAGE);
+  const totalPreviewPages = reportPages.length;
+  const safePreviewPage = Math.min(previewPage, totalPreviewPages);
+  const currentPreviewRows = reportPages[safePreviewPage - 1] || [];
+
+  const renderFormalSheet = (
+    pageRows: Record<string, unknown>[],
+    pageNum: number,
+    totalPg: number,
+    isPrintMode: boolean,
+    isLastPrintPage = true
+  ) => {
+    const startOffset = (pageNum - 1) * REPORT_ROWS_PER_PAGE;
+
+    return (
+      <div
+        key={isPrintMode ? `print-page-${pageNum}` : `preview-page-${pageNum}`}
+        dir="ltr"
+        className={
+          isPrintMode
+            ? `bg-white text-slate-900 w-full flex flex-col justify-between ${
+                !isLastPrintPage ? 'break-after-page' : ''
+              }`
+            : 'bg-white text-slate-900 border border-slate-300 rounded-lg p-5 sm:p-6 shadow-sm mx-auto max-w-[794px] space-y-4'
+        }
+        style={{
+          WebkitPrintColorAdjust: 'exact',
+          printColorAdjust: 'exact',
+          ...(isPrintMode && !isLastPrintPage ? { pageBreakAfter: 'always' } : {}),
+        }}
+      >
+        <div className="space-y-3.5">
+          {/* 1. Clean Corporate Header (rendered on EVERY page) */}
+          <div className="flex items-center justify-between gap-4 pb-1.5">
+            <div className="shrink-0">
+              <img src={logoColor} alt="Intercom" className="h-7 sm:h-8 w-auto object-contain" />
+            </div>
+
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight text-center min-w-0 leading-snug">
+              {cleanTitleEn}
+            </h3>
+
+            <div className="text-right shrink-0 text-[10.5px] font-semibold text-slate-500">
+              Archive Management
+            </div>
+          </div>
+
+          {/* 2. Clear 2-Column English Metadata Box (rendered on EVERY page) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 text-[12px] bg-slate-50 border border-slate-200 rounded-md px-3.5 py-2.5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600 shrink-0">Scope :</span>
+                <span className="font-semibold text-slate-900">{scopeLabel}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600 shrink-0">Total :</span>
+                <span className="font-semibold text-slate-900 tabular-nums">
+                  {filteredReportData.length} Records · {boxes.length} Boxes
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600 shrink-0">Print Date :</span>
+                <span className="text-slate-900 tabular-nums">{formattedPrintDate}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-600 shrink-0">Prepared By :</span>
+                <span className="font-semibold text-slate-900 truncate">
+                  {currentUser?.name || 'System Admin'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-b-2 border-slate-700" />
+
+          {/* 3. Classic Gray-Header Grid Table (#D9D9D9) */}
+          <div className={isPrintMode ? 'mt-2' : 'mt-2 overflow-x-auto'}>
+            <table className="w-full border-collapse text-[12px] text-left">
+              <thead>
+                <tr className="bg-[#D9D9D9] text-slate-900 font-bold">
+                  <th className="border border-slate-400 px-2 py-1.5 w-9 text-center">#</th>
+                  {reportColumns.map(col => (
+                    <th key={col} className="border border-slate-400 px-2.5 py-1.5 leading-tight">
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.length > 0 ? (
+                  pageRows.map((row, idx) => (
+                    <tr key={startOffset + idx} className="bg-white hover:bg-slate-50">
+                      <td className="border border-slate-300 px-2 py-1.5 text-center text-slate-600 text-[11px] tabular-nums">
+                        {startOffset + idx + 1}
+                      </td>
+                      {reportColumns.map(col => (
+                        <td
+                          key={col}
+                          className={`border border-slate-300 px-2.5 py-1.5 text-slate-900 ${
+                            col === 'Job ID' || col === 'First Job ID' || col === 'Range'
+                              ? 'font-semibold tabular-nums'
+                              : ''
+                          }`}
+                        >
+                          {String(row[col] ?? '—')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={reportColumns.length + 1}
+                      className="border border-slate-300 py-8 text-center text-slate-500"
+                    >
+                      No records match current filter
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 4. Page Footer on EVERY page */}
+        <div className="pt-2.5 mt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+          <span className="font-medium">Intercom ARMS</span>
+          <span className="font-semibold tabular-nums">
+            Page {pageNum} of {totalPg}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -270,109 +463,123 @@ export const ReportsView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <FileBarChart className="w-6 h-6 text-slate-900 dark:text-white" />
+          <h1 className="text-xl sm:text-2xl font-bold text-[#3F4144] dark:text-white tracking-tight flex items-center gap-2">
+            <FileBarChart className="w-6 h-6 text-[#0B56A8] dark:text-blue-400" />
             <span>{language === 'ar' ? 'مركز التقارير المتقدمة (12 تقرير)' : 'Advanced Reports Center'}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {language === 'ar'
-              ? 'تصدير كامل لكافة تقارير الأرشفة، النواقص، البوكسات، وعمليات الإغلاق الإداري إلى Excel و PDF.'
-              : 'Full export capabilities for archived projects, missing gaps, boxes, and audit logs to Excel & PDF.'}
+              ? 'معاينة وتصدير التقارير بصيغة A4 احترافية بهوية Intercom إلى Excel و PDF والطباعة المباشرة.'
+              : 'Clean Intercom A4 portrait report layout exportable to Excel, paginated PDF, and direct Print.'}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-[#0B56A8] hover:bg-[#094488] rounded-lg transition-colors shadow-xs whitespace-nowrap"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>{language === 'ar' ? 'تصدير إلى Excel' : 'Export Excel'}</span>
           </button>
 
           <button
+            type="button"
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded-lg transition-colors shadow-xs"
+            disabled={exportingPdf}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#3F4144] dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] rounded-lg transition-colors shadow-xs whitespace-nowrap disabled:opacity-60"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'تصدير إلى PDF' : 'Export PDF'}</span>
+            <Download className="w-3.5 h-3.5 text-[#E52225]" />
+            <span>
+              {exportingPdf
+                ? (language === 'ar' ? 'جاري التجهيز...' : 'Generating PDF...')
+                : (language === 'ar' ? 'تصدير PDF (A4)' : 'Export PDF (A4)')}
+            </span>
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded-lg transition-colors shadow-xs"
+            type="button"
+            onClick={() => setPrintingReport(true)}
+            disabled={printingReport}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#3F4144] dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] rounded-lg transition-colors shadow-xs whitespace-nowrap disabled:opacity-60"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>{language === 'ar' ? 'طباعة' : 'Print'}</span>
+            <span>{language === 'ar' ? 'طباعة A4' : 'Print A4'}</span>
           </button>
         </div>
       </div>
 
-      {/* Main Grid: Report Selection List on left, Data Table on right */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Side: 12 Reports Menu */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1">
+        {/* 12 Reports Menu */}
+        <div className="lg:col-span-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
             {language === 'ar' ? 'التقارير المتوفرة (12 تقرير)' : 'Available Reports'}
           </div>
 
-          <div className="space-y-1 max-h-[600px] overflow-y-auto">
+          <div className="space-y-1 max-h-[640px] overflow-y-auto">
             {reportOptions.map(opt => (
               <button
+                type="button"
                 key={opt.id}
                 onClick={() => {
                   setActiveReport(opt.id);
                   setSearchTerm('');
+                  setPreviewPage(1);
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
+                className={`w-full text-start px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between gap-2 ${
                   activeReport === opt.id
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs'
+                    ? 'bg-[#0B56A8] text-white font-bold shadow-xs'
                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <span>{language === 'ar' ? opt.titleAr : opt.titleEn}</span>
-                <span className="text-[10px] opacity-60 font-mono">{opt.category}</span>
+                <span className="truncate">{language === 'ar' ? opt.titleAr : opt.titleEn}</span>
+                <span className="text-[10px] opacity-75 shrink-0">{opt.category}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Right Side: Filters & Dynamic Report Table */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
+        {/* Filters & Formal Report Sheet Preview */}
+        <div className="lg:col-span-8 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                {language === 'ar'
-                  ? reportOptions.find(r => r.id === activeReport)?.titleAr
-                  : reportOptions.find(r => r.id === activeReport)?.titleEn}
+              <h2 className="text-sm font-bold text-[#3F4144] dark:text-white">
+                {language === 'ar' ? activeOption.titleAr : activeOption.titleEn}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 tabular-nums">
                 {language === 'ar'
-                  ? `إجمالي السجلات المستخرجة: ${filteredReportData.length} سجل`
-                  : `Total matching records: ${filteredReportData.length}`}
+                  ? `معاينة التقرير (${filteredReportData.length} سجل · ${totalPreviewPages} صفحة)`
+                  : `Report preview (${filteredReportData.length} records · ${totalPreviewPages} pages)`}
               </p>
             </div>
 
             {/* Filter controls */}
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                <Search className="absolute start-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder={language === 'ar' ? 'تصفية النتائج...' : 'Filter in table...'}
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none w-36 sm:w-44"
+                  onChange={e => {
+                    setSearchTerm(e.target.value);
+                    setPreviewPage(1);
+                  }}
+                  className="ps-8 pe-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-[#0B56A8] w-36 sm:w-44"
                 />
               </div>
 
-              {/* Box filter for project/dossier reports */}
               {(activeReport.includes('project') || activeReport.includes('dossier')) && (
                 <select
                   value={boxFilter}
-                  onChange={e => setBoxFilter(e.target.value)}
-                  className="px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                  onChange={e => {
+                    setBoxFilter(e.target.value);
+                    setPreviewPage(1);
+                  }}
+                  className="px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-[#0B56A8]"
                 >
                   <option value="all">{language === 'ar' ? 'كافة البوكسات' : 'All Boxes'}</option>
                   {boxes.map(b => (
@@ -385,56 +592,81 @@ export const ReportsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Table display */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
-            <div className="max-h-[500px] overflow-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase text-[10px] font-semibold sticky top-0">
-                  <tr>
-                    <th className="px-3 py-2.5 w-12">#</th>
-                    {reportColumns.map(col => (
-                      <th key={col} className="px-3 py-2.5">
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredReportData.length > 0 ? (
-                    filteredReportData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50">
-                        <td className="px-3 py-2 text-slate-400 font-mono text-[11px] tabular-nums">
-                          {idx + 1}
-                        </td>
-                        {reportColumns.map(col => (
-                          <td
-                            key={col}
-                            className={`px-3 py-2 ${
-                              col === 'Job ID' || col === 'First Job ID' || col === 'Range'
-                                ? 'font-mono font-bold text-slate-900 dark:text-white tabular-nums'
-                                : col === 'Status' || col === 'Validation Status'
-                                ? 'font-semibold'
-                                : 'text-slate-600 dark:text-slate-300'
-                            }`}
-                          >
-                            {String(row[col] ?? '—')}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={reportColumns.length + 1} className="py-8 text-center text-slate-400">
-                        {language === 'ar' ? 'لا توجد بيانات متطابقة مع شروط البحث' : 'No records match current filter'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Preview Page Flipper Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs">
+            <div className="text-slate-600 dark:text-slate-300 font-medium tabular-nums">
+              {language === 'ar'
+                ? `الصفحة ${safePreviewPage} من ${totalPreviewPages}`
+                : `Page ${safePreviewPage} of ${totalPreviewPages}`}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPreviewPage(p => Math.max(1, p - 1))}
+                disabled={safePreviewPage <= 1}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#0B56A8] hover:text-[#0B56A8] disabled:opacity-40 disabled:pointer-events-none transition-colors font-semibold"
+              >
+                {language === 'ar' ? (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                )}
+                <span>{language === 'ar' ? 'السابقة' : 'Prev'}</span>
+              </button>
+
+              {totalPreviewPages > 1 && (
+                <select
+                  aria-label={language === 'ar' ? 'اختيار الصفحة' : 'Select page'}
+                  value={safePreviewPage}
+                  onChange={e => setPreviewPage(Number(e.target.value))}
+                  className="px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold tabular-nums focus:outline-none focus:border-[#0B56A8]"
+                >
+                  {Array.from({ length: totalPreviewPages }, (_, i) => i + 1).map(pNum => (
+                    <option key={pNum} value={pNum}>
+                      {pNum} / {totalPreviewPages}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setPreviewPage(p => Math.min(totalPreviewPages, p + 1))}
+                disabled={safePreviewPage >= totalPreviewPages}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-[#0B56A8] hover:text-[#0B56A8] disabled:opacity-40 disabled:pointer-events-none transition-colors font-semibold"
+              >
+                <span>{language === 'ar' ? 'التالية' : 'Next'}</span>
+                {language === 'ar' ? (
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                )}
+              </button>
             </div>
           </div>
+
+          {/* Crisp Formal White A4 Sheet Preview */}
+          {renderFormalSheet(currentPreviewRows, safePreviewPage, totalPreviewPages, false)}
         </div>
       </div>
+
+      {/* Isolated A4 Portrait Print Portal (all pages with full header on each page) */}
+      {printingReport &&
+        createPortal(
+          <div id="arms-report-print-portal" className="hidden print:block">
+            {reportPages.map((pageRows, idx) =>
+              renderFormalSheet(
+                pageRows,
+                idx + 1,
+                reportPages.length,
+                true,
+                idx === reportPages.length - 1
+              )
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

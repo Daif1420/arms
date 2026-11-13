@@ -14,44 +14,19 @@ interface LabelCanvasPreviewProps {
   className?: string;
 }
 
-export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
-  data,
-  scale = 1.0,
-  className = '',
-}) => {
-  const [qrSrc, setQrSrc] = useState<string>('');
+interface LabelVectorSvgProps {
+  data: LabelData;
+  qrSrc: string;
+}
 
-  useEffect(() => {
-    let isMounted = true;
-    const text = getQRCodeText(data);
-    generateQRDataURL(text).then(url => {
-      if (isMounted) setQrSrc(url);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, [data]);
-
-  // Base dimensions in millimeters
-  const widthMm = 100;
-  const heightMm = 50;
-
-  // We can render in SVG with viewBox 0 0 100 50 so 1 unit = 1 millimeter!
-  return (
-    <div
-      className={`inline-block shadow-sm transition-all bg-white select-none rounded border border-slate-300 dark:border-slate-700 ${className}`}
-      style={{
-        width: `${widthMm * 3.78 * scale}px`, // ~378px at scale 1
-        height: `${heightMm * 3.78 * scale}px`, // ~189px at scale 1
-      }}
-    >
-      <svg
-        viewBox="0 0 100 50"
-        className="w-full h-full text-black font-sans"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Background */}
-        <rect x="0" y="0" width="100" height="50" fill="#FFFFFF" />
+export const LabelVectorSvg: React.FC<LabelVectorSvgProps> = ({ data, qrSrc }) => (
+  <svg
+    viewBox="0 0 100 50"
+    className="w-full h-full text-black font-sans block"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Background */}
+    <rect x="0" y="0" width="100" height="50" fill="#FFFFFF" />
 
         {/* 1. Outer Border: rounded rectangle, X: 4 to 97, Y: 2.5 to 47.4 */}
         <rect
@@ -135,24 +110,24 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
             {/* Word "Dossier" */}
             <text
               x="27.25"
-              y="19.6"
+              y="18.7"
               textAnchor="middle"
               fill="#000000"
               fontFamily="Helvetica, Arial, sans-serif"
-              fontSize="3.4"
+              fontSize="3.6"
               fontWeight="bold"
             >
               Dossier
             </text>
 
-            {/* Huge Dossier Number */}
+            {/* Large Centered Dossier Number */}
             <text
               x="27.25"
-              y="32.8"
+              y="32.6"
               textAnchor="middle"
               fill="#000000"
               fontFamily="Helvetica, Arial, sans-serif"
-              fontSize="12.5"
+              fontSize="15.0"
               fontWeight="bold"
             >
               {data.dossierNumber || 1}
@@ -161,11 +136,11 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
             {/* Word "Box" */}
             <text
               x="27.25"
-              y="38.5"
+              y="38.3"
               textAnchor="middle"
               fill="#000000"
               fontFamily="Helvetica, Arial, sans-serif"
-              fontSize="2.2"
+              fontSize="2.5"
               fontWeight="bold"
             >
               Box
@@ -174,11 +149,11 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
             {/* Box Code */}
             <text
               x="27.25"
-              y="42.6"
+              y="43.3"
               textAnchor="middle"
               fill="#000000"
               fontFamily="Helvetica, Arial, sans-serif"
-              fontSize="3.6"
+              fontSize="4.6"
               fontWeight="bold"
             >
               {data.boxCode}
@@ -186,24 +161,24 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
           </>
         )}
 
-        {/* 4. QR Code: top right, X ≈ 62.5 to 81, Y ≈ 14.8 to 33.3 */}
+        {/* 4. QR Code: centered directly over Range Box (center X = 72.45) */}
         {/* Corner Brackets */}
         <g stroke="#000000" strokeWidth="0.45" fill="none">
           {/* Top-left */}
-          <path d="M 60.8 16.5 L 60.8 13.5 L 63.8 13.5" />
+          <path d="M 61.5 16.5 L 61.5 13.5 L 64.5 13.5" />
           {/* Top-right */}
-          <path d="M 79.8 13.5 L 82.8 13.5 L 82.8 16.5" />
+          <path d="M 80.4 13.5 L 83.4 13.5 L 83.4 16.5" />
           {/* Bottom-left */}
-          <path d="M 60.8 31.8 L 60.8 34.8 L 63.8 34.8" />
+          <path d="M 61.5 31.8 L 61.5 34.8 L 64.5 34.8" />
           {/* Bottom-right */}
-          <path d="M 79.8 34.8 L 82.8 34.8 L 82.8 31.8" />
+          <path d="M 80.4 34.8 L 83.4 34.8 L 83.4 31.8" />
         </g>
 
         {/* QR Code Image */}
         {qrSrc && (
           <image
             href={qrSrc}
-            x="62.5"
+            x="63.2"
             y="14.8"
             width="18.5"
             height="18.5"
@@ -223,57 +198,89 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
           strokeWidth="0.45"
         />
 
-        {/* Vertical divider line at X ≈ 72.4 */}
-        <line x1="72.4" y1="36.1" x2="72.4" y2="44.7" stroke="#000000" strokeWidth="0.45" />
+        {/* Vertical divider line at X = 72.45 */}
+        <line x1="72.45" y1="36.1" x2="72.45" y2="44.7" stroke="#000000" strokeWidth="0.45" />
 
-        {/* FROM Section (left half center ≈ 61.65) */}
+        {/* FROM Section (left half center = 61.675) */}
         <text
-          x="61.65"
-          y="38.8"
+          x="61.675"
+          y="38.7"
           textAnchor="middle"
           fill="#000000"
           fontFamily="Helvetica, Arial, sans-serif"
-          fontSize="2.1"
+          fontSize="2.3"
           fontWeight="bold"
         >
           FROM
         </text>
         <text
-          x="61.65"
-          y="43.5"
+          x="61.675"
+          y="43.6"
           textAnchor="middle"
           fill="#000000"
           fontFamily="Helvetica, Arial, sans-serif"
-          fontSize="4.5"
+          fontSize="5.0"
           fontWeight="bold"
         >
           {data.fromJobId}
         </text>
 
-        {/* TO Section (right half center ≈ 83.2) */}
+        {/* TO Section (right half center = 83.225) */}
         <text
-          x="83.2"
-          y="38.8"
+          x="83.225"
+          y="38.7"
           textAnchor="middle"
           fill="#000000"
           fontFamily="Helvetica, Arial, sans-serif"
-          fontSize="2.1"
+          fontSize="2.3"
           fontWeight="bold"
         >
           TO
         </text>
         <text
-          x="83.2"
-          y="43.5"
+          x="83.225"
+          y="43.6"
           textAnchor="middle"
           fill="#000000"
           fontFamily="Helvetica, Arial, sans-serif"
-          fontSize="4.5"
+          fontSize="5.0"
           fontWeight="bold"
         >
           {data.toJobId}
         </text>
       </svg>
+);
+
+export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
+  data,
+  scale = 1.0,
+  className = '',
+}) => {
+  const [qrSrc, setQrSrc] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const text = getQRCodeText(data);
+    generateQRDataURL(text).then(url => {
+      if (isMounted) setQrSrc(url);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [data]);
+
+  const widthMm = 100;
+  const heightMm = 50;
+
+  return (
+    <div
+      className={`inline-block shadow-sm transition-all bg-white select-none rounded border border-slate-300 dark:border-slate-700 ${className}`}
+      style={{
+        width: `${widthMm * 3.78 * scale}px`,
+        height: `${heightMm * 3.78 * scale}px`,
+      }}
+    >
+      <LabelVectorSvg data={data} qrSrc={qrSrc} />
     </div>
   );
 };

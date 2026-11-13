@@ -1,5 +1,6 @@
 {
-  "name": "ARMS – Archive Reports Management System",
-  "description": "Enterprise archive management system with 300-project box tracking, 50-project dossiers, Excel import engine, and thermal label generator.",
-  "requestFramePermissions": []
+  "name": "ARMS — Intercom Archive Management",
+  "description": "Enterprise archive records, boxes, dossiers, and thermal label management system for Intercom.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

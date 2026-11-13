@@ -3,19 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ARMS – Archive Reports Management System</title>
-    <meta name="description" content="ARMS archive reports management system for Intercom." />
-    <meta property="og:title" content="ARMS – Archive Reports Management System" />
-    <meta property="og:description" content="ARMS archive reports management system for Intercom." />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B56A8'/%3E%3Crect x='14' y='16' width='36' height='32' rx='6' fill='none' stroke='%23FFFFFF' stroke-width='4'/%3E%3Cpath d='M14 26h36' stroke='%23F5A614' stroke-width='4'/%3E%3Ccircle cx='46' cy='46' r='6' fill='%23E52225'/%3E%3C/svg%3E"
+    />
+    <title>ARMS — Intercom Archive Management</title>
+    <meta name="description" content="Enterprise archive records, boxes, dossiers, and thermal label management system for Intercom." />
+    <meta property="og:title" content="ARMS — Intercom Archive Management" />
+    <meta property="og:description" content="Enterprise archive records, boxes, dossiers, and thermal label management system for Intercom." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('arms_theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
