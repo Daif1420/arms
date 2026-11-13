@@ -3,7 +3,7 @@
  * Boxes List with 6 dossiers, 300 projects, Force Close indicator, progress bars, and admin controls.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FolderArchive, Printer, Plus, Search, ArrowRight, Lock, Unlock } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { Box } from '../../types';
@@ -12,9 +12,16 @@ import { ActiveTab } from '../navigation/TopNav';
 interface BoxesViewProps {
   onNavigate: (tab: ActiveTab, param?: string) => void;
   onSelectBox: (boxId: string) => void;
+  initialOpenCreate?: boolean;
+  onCreateModalConsumed?: () => void;
 }
 
-export const BoxesView: React.FC<BoxesViewProps> = ({ onNavigate, onSelectBox }) => {
+export const BoxesView: React.FC<BoxesViewProps> = ({
+  onNavigate,
+  onSelectBox,
+  initialOpenCreate = false,
+  onCreateModalConsumed,
+}) => {
   const { boxes, currentUser, forceCloseBox, reopenBox, createBox, showToast, language } = useArchive();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +30,17 @@ export const BoxesView: React.FC<BoxesViewProps> = ({ onNavigate, onSelectBox })
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBoxCode, setNewBoxCode] = useState('');
   const [newFirstJobId, setNewFirstJobId] = useState(35500);
+
+  useEffect(() => {
+    if (!initialOpenCreate) return;
+    if (currentUser.role === 'System Admin') {
+      const nextNum = 42 + boxes.length;
+      setNewBoxCode(`D${nextNum}`);
+      setNewFirstJobId(35500 + boxes.length * 300);
+      setShowCreateModal(true);
+    }
+    onCreateModalConsumed?.();
+  }, [initialOpenCreate, currentUser.role, boxes.length, onCreateModalConsumed]);
 
   const [forceCloseModalBox, setForceCloseModalBox] = useState<Box | null>(null);
   const [forceCloseReason, setForceCloseReason] = useState('');
@@ -79,7 +97,12 @@ export const BoxesView: React.FC<BoxesViewProps> = ({ onNavigate, onSelectBox })
         <div className="flex items-center gap-2">
           {currentUser.role === 'System Admin' && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                const nextNum = 42 + boxes.length;
+                setNewBoxCode(`D${nextNum}`);
+                setNewFirstJobId(35500 + boxes.length * 300);
+                setShowCreateModal(true);
+              }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0B56A8] hover:bg-[#094488] rounded-lg transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />

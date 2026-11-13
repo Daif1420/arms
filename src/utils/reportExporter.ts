@@ -20,6 +20,7 @@ export interface ReportExportOptions {
   totalBoxes: number;
   preparedBy: string;
   printDate: string;
+  rowsPerPage?: number;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -148,7 +149,16 @@ export async function exportReportToPDF(opts: ReportExportOptions): Promise<stri
   const weights = cols.map(c => {
     if (c === '#') return 0.55;
     if (c === 'Details' || c === 'Reason for Closure' || c === 'Notes' || c === 'Source Upload') return 1.85;
-    if (c === 'Timestamp' || c === 'File Name' || c === 'Range' || c === 'Action Required') return 1.45;
+    if (c === 'Box / Dossier') return 1.65;
+    if (
+      c === 'Timestamp' ||
+      c === 'File Name' ||
+      c === 'Range' ||
+      c === 'Range (From → To)' ||
+      c === 'Action Required'
+    ) {
+      return 1.45;
+    }
     return 1.0;
   });
   const totalWeight = weights.reduce((a, b) => a + b, 0);
@@ -158,7 +168,7 @@ export async function exportReportToPDF(opts: ReportExportOptions): Promise<stri
   const THEAD_H = 50;
   const TABLE_TOP_Y = 256;
 
-  const pages = paginateReportRows(opts.rows, REPORT_ROWS_PER_PAGE);
+  const pages = paginateReportRows(opts.rows, opts.rowsPerPage ?? REPORT_ROWS_PER_PAGE);
   let globalRowOffset = 0;
 
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
@@ -283,12 +293,13 @@ export async function exportReportToPDF(opts: ReportExportOptions): Promise<stri
       pageRows.forEach((row, rIdx) => {
         const y = tableTopY + THEAD_H + rIdx * ROW_H;
         const rowNum = globalRowOffset + rIdx + 1;
+        const isBoxHeader = Boolean(row.__isBoxHeader);
 
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = isBoxHeader ? '#E8EEF5' : '#FFFFFF';
         ctx.fillRect(M, y, CONTENT_W, ROW_H);
 
-        ctx.strokeStyle = '#CBD5E1';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isBoxHeader ? '#94A3B8' : '#CBD5E1';
+        ctx.lineWidth = isBoxHeader ? 1.2 : 1;
         ctx.strokeRect(M, y, CONTENT_W, ROW_H);
 
         let cellX = M;
@@ -302,11 +313,17 @@ export async function exportReportToPDF(opts: ReportExportOptions): Promise<stri
           }
 
           const rawVal = col === '#' ? String(rowNum) : String(row[col] ?? '—');
-          ctx.fillStyle = '#0F172A';
+          ctx.fillStyle = isBoxHeader ? '#0F172A' : '#1E293B';
           ctx.font =
-            col === 'Job ID' || col === 'First Job ID' || col === 'Range' || col === '#'
-              ? '600 16.5px "Inter", Arial, sans-serif'
-              : '500 16px "Inter", "Cairo", Arial, sans-serif';
+            isBoxHeader
+              ? 'bold 16.5px "Inter", Arial, sans-serif'
+              : col === 'Job ID' ||
+                  col === 'First Job ID' ||
+                  col === 'Range' ||
+                  col === 'Range (From → To)' ||
+                  col === '#'
+                ? '600 16.5px "Inter", Arial, sans-serif'
+                : '500 16px "Inter", "Cairo", Arial, sans-serif';
 
           if (col === '#') {
             ctx.textAlign = 'center';

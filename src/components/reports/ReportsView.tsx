@@ -27,7 +27,8 @@ export type ReportType =
   | 'upload-history'
   | 'user-activity'
   | 'exception-report'
-  | 'force-close-report';
+  | 'force-close-report'
+  | 'boxes-dossiers-ranges';
 
 export const ReportsView: React.FC = () => {
   const { boxes, dossiers, projects, uploadHistory, auditLogs, currentUser, language, showToast } = useArchive();
@@ -52,6 +53,7 @@ export const ReportsView: React.FC = () => {
     { id: 'user-activity', titleAr: '10. تقرير نشاط المستخدمين (Audit)', titleEn: '10. User Activity (Audit)', category: 'Security' },
     { id: 'exception-report', titleAr: '11. تقرير الاستثناءات والفجوات', titleEn: '11. Exception Report', category: 'Quality' },
     { id: 'force-close-report', titleAr: '12. تقرير الإغلاق الإداري (Force Close)', titleEn: '12. Force Close Report', category: 'Audit' },
+    { id: 'boxes-dossiers-ranges', titleAr: '13. تقرير البوكسات ورينجات الدوسيهات', titleEn: '13. Boxes & Dossiers Ranges', category: 'Boxes' },
   ];
 
   // Build report dataset based on selected report
@@ -221,12 +223,45 @@ export const ReportsView: React.FC = () => {
           'Archived Count': `${b.archivedProjects} / 300`,
         }));
       break;
+
+    case 'boxes-dossiers-ranges':
+      reportColumns = ['Box / Dossier', 'Range (From → To)', 'Projects', 'Missing', 'Pending', 'Status'];
+      reportData = boxes
+        .filter(b => boxFilter === 'all' || b.boxCode === boxFilter)
+        .flatMap(b => {
+          const boxDossiers = dossiers
+            .filter(d => d.boxId === b.boxCode)
+            .sort((a, z) => a.dossierNumber - z.dossierNumber);
+
+          const boxHeaderRow: Record<string, unknown> = {
+            __isBoxHeader: true,
+            'Box / Dossier': `Box ${b.boxCode}`,
+            'Range (From → To)': `${b.firstJobId} → ${b.lastJobId}`,
+            'Projects': `${b.archivedProjects} / ${b.totalProjects}`,
+            'Missing': b.missingProjects,
+            'Pending': b.pendingProjects,
+            'Status': b.isForceClosed ? 'Force Closed' : b.status,
+          };
+
+          const dossierRows: Record<string, unknown>[] = boxDossiers.map(d => ({
+            __isBoxHeader: false,
+            'Box / Dossier': `  • Dossier ${d.dossierNumber} (${d.id})`,
+            'Range (From → To)': `${d.fromJobId} → ${d.toJobId}`,
+            'Projects': `${d.archivedCount} / ${d.totalProjects}`,
+            'Missing': d.missingCount,
+            'Pending': d.pendingCount,
+            'Status': d.status,
+          }));
+
+          return [boxHeaderRow, ...dossierRows];
+        });
+      break;
   }
 
   // Filter report data with local search term
   const filteredReportData = reportData.filter(row => {
     if (!searchTerm) return true;
-    return Object.values(row).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()));
+    return reportColumns.some(col => String(row[col] ?? '').toLowerCase().includes(searchTerm.toLowerCase()));
   });
 
   const activeOption = reportOptions.find(r => r.id === activeReport)!;
@@ -240,6 +275,8 @@ export const ReportsView: React.FC = () => {
     hour12: true,
   });
 
+  const activeRowsPerPage = activeReport === 'boxes-dossiers-ranges' ? 28 : REPORT_ROWS_PER_PAGE;
+
   const buildExportOptions = () => ({
     reportId: activeReport,
     reportTitleEn: activeOption.titleEn,
@@ -251,6 +288,7 @@ export const ReportsView: React.FC = () => {
     totalBoxes: boxes.length,
     preparedBy: currentUser?.name || 'System Admin',
     printDate: formattedPrintDate,
+    rowsPerPage: activeRowsPerPage,
   });
 
   // Export to Excel matching the clean A4 template
@@ -320,7 +358,7 @@ export const ReportsView: React.FC = () => {
 
   const scopeLabel = boxFilter === 'all' ? 'All Boxes' : `Box ${boxFilter}`;
 
-  const reportPages = paginateReportRows(filteredReportData, REPORT_ROWS_PER_PAGE);
+  const reportPages = paginateReportRows(filteredReportData, activeRowsPerPage);
   const totalPreviewPages = reportPages.length;
   const safePreviewPage = Math.min(previewPage, totalPreviewPages);
   const currentPreviewRows = reportPages[safePreviewPage - 1] || [];
@@ -332,7 +370,7 @@ export const ReportsView: React.FC = () => {
     isPrintMode: boolean,
     isLastPrintPage = true
   ) => {
-    const startOffset = (pageNum - 1) * REPORT_ROWS_PER_PAGE;
+    const startOffset = (pageNum - 1) * activeRowsPerPage;
 
     return (
       <div
@@ -413,25 +451,40 @@ export const ReportsView: React.FC = () => {
               </thead>
               <tbody>
                 {pageRows.length > 0 ? (
-                  pageRows.map((row, idx) => (
-                    <tr key={startOffset + idx} className="bg-white hover:bg-slate-50">
-                      <td className="border border-slate-300 px-2 py-1.5 text-center text-slate-600 text-[11px] tabular-nums">
-                        {startOffset + idx + 1}
-                      </td>
-                      {reportColumns.map(col => (
+                  pageRows.map((row, idx) => {
+                    const isBoxHeader = Boolean(row.__isBoxHeader);
+                    return (
+                      <tr
+                        key={startOffset + idx}
+                        className={isBoxHeader ? 'bg-[#E8EEF5] font-bold' : 'bg-white hover:bg-slate-50'}
+                      >
                         <td
-                          key={col}
-                          className={`border border-slate-300 px-2.5 py-1.5 text-slate-900 ${
-                            col === 'Job ID' || col === 'First Job ID' || col === 'Range'
-                              ? 'font-semibold tabular-nums'
-                              : ''
+                          className={`border px-2 py-1.5 text-center text-[11px] tabular-nums ${
+                            isBoxHeader ? 'border-slate-400 text-slate-800 font-bold' : 'border-slate-300 text-slate-600'
                           }`}
                         >
-                          {String(row[col] ?? '—')}
+                          {startOffset + idx + 1}
                         </td>
-                      ))}
-                    </tr>
-                  ))
+                        {reportColumns.map(col => (
+                          <td
+                            key={col}
+                            className={`border px-2.5 py-1.5 text-slate-900 ${
+                              isBoxHeader ? 'border-slate-400 font-bold' : 'border-slate-300'
+                            } ${
+                              col === 'Job ID' ||
+                              col === 'First Job ID' ||
+                              col === 'Range' ||
+                              col === 'Range (From → To)'
+                                ? 'font-semibold tabular-nums'
+                                : ''
+                            }`}
+                          >
+                            {String(row[col] ?? '—')}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td
@@ -465,7 +518,7 @@ export const ReportsView: React.FC = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#3F4144] dark:text-white tracking-tight flex items-center gap-2">
             <FileBarChart className="w-6 h-6 text-[#0B56A8] dark:text-blue-400" />
-            <span>{language === 'ar' ? 'مركز التقارير المتقدمة (12 تقرير)' : 'Advanced Reports Center'}</span>
+            <span>{language === 'ar' ? 'مركز التقارير المتقدمة (13 تقرير)' : 'Advanced Reports Center'}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {language === 'ar'
@@ -513,10 +566,10 @@ export const ReportsView: React.FC = () => {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* 12 Reports Menu */}
+        {/* 13 Reports Menu */}
         <div className="lg:col-span-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-            {language === 'ar' ? 'التقارير المتوفرة (12 تقرير)' : 'Available Reports'}
+            {language === 'ar' ? 'التقارير المتوفرة (13 تقرير)' : 'Available Reports'}
           </div>
 
           <div className="space-y-1 max-h-[640px] overflow-y-auto">

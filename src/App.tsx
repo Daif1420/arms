@@ -41,6 +41,7 @@ function MainApp() {
   const [selectedDossierId, setSelectedDossierId] = useState<string>('D42-1');
   const [projectsFilter, setProjectsFilter] = useState<string>('');
   const [labelInitialBoxCode, setLabelInitialBoxCode] = useState<string>('D42');
+  const [openBoxCreateModal, setOpenBoxCreateModal] = useState(false);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [usersManagementOpen, setUsersManagementOpen] = useState(false);
@@ -62,6 +63,7 @@ function MainApp() {
 
   const handleNavigate = (tab: ActiveTab, param?: string) => {
     setActiveTab(tab);
+    setOpenBoxCreateModal(tab === 'boxes' && param === 'create');
     if (tab === 'box-detail' && param) {
       setSelectedBoxId(param);
     } else if (tab === 'dossier-detail' && param) {
@@ -182,7 +184,12 @@ function MainApp() {
         {activeTab === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
 
         {activeTab === 'boxes' && (
-          <BoxesView onNavigate={handleNavigate} onSelectBox={boxId => setSelectedBoxId(boxId)} />
+          <BoxesView
+            onNavigate={handleNavigate}
+            onSelectBox={boxId => setSelectedBoxId(boxId)}
+            initialOpenCreate={openBoxCreateModal}
+            onCreateModalConsumed={() => setOpenBoxCreateModal(false)}
+          />
         )}
 
         {activeTab === 'box-detail' && (

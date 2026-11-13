@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { IntercomLogo } from '../common/IntercomLogo';
+import archiveReportsHero from '../../assets/images/archive_reports_hero_1794602023269.jpg';
 
 const THEME_KEY = 'arms_theme';
 const readTheme = () => {
@@ -28,7 +29,7 @@ const readTheme = () => {
   }
 };
 
-const HERO_IMAGE_SRC = '/src/assets/images/intercom_hq_building_1794592559649.jpg';
+const HERO_IMAGE_SRC = archiveReportsHero;
 
 export const LoginView: React.FC = () => {
   const { login, setupRequired, authError, language, setLanguage } = useArchive();
@@ -299,7 +300,7 @@ export const LoginView: React.FC = () => {
         {!heroError ? (
           <img
             src={HERO_IMAGE_SRC}
-            alt="Intercom Headquarters"
+            alt="Archive Reports and Records Facility"
             referrerPolicy="no-referrer"
             onError={() => setHeroError(true)}
             className="absolute inset-0 w-full h-full object-cover"
@@ -355,7 +356,7 @@ export const LoginView: React.FC = () => {
                   {t('اكتشاف الفجوات والتقارير', 'Gap Detection & Reports')}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                  {t('تحليل فوري للنواقص وسجل الاعتمادات', 'Automated sequence gap detection & 12 reports')}
+                  {t('تحليل فوري للنواقص وسجل الاعتمادات', 'Automated sequence gap detection & 13 reports')}
                 </div>
               </div>
             </div>
