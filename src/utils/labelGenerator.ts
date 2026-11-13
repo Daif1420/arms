@@ -7,6 +7,10 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { LabelData } from '../types';
+import logoDark from '../assets/logo-dark.png?inline';
+
+/** White-text Intercom logo placed inside the black label header (source is 250 x 56 px). */
+export const LABEL_LOGO = { src: logoDark, x: 6.8, y: 4.2, h: 6.4, w: 6.4 * (250 / 56) } as const;
 
 /**
  * Generate standard QR code payload text matching the specification exactly
@@ -32,49 +36,6 @@ export async function generateQRDataURL(text: string): Promise<string> {
     },
     errorCorrectionLevel: 'M',
   });
-}
-
-/**
- * Draws the Intercom Logo mark and typography in pure vector commands for PDF or Canvas
- */
-export function drawIntercomLogo(pdf: jsPDF, x: number, y: number, scale = 1) {
-  // Save current graphics state
-  pdf.setFillColor(255, 255, 255);
-  pdf.setTextColor(255, 255, 255);
-
-  // Intercom icon: speech bubble with four subtle lines
-  // Icon centered vertically in header (Y ~ 4.2 to 10.2)
-  const iconX = x;
-  const iconY = y;
-  const iconW = 5.6 * scale;
-  const iconH = 5.2 * scale;
-
-  // Outer speech bubble round rect
-  pdf.roundedRect(iconX, iconY, iconW, iconH, 1.2 * scale, 1.2 * scale, 'F');
-
-  // Little talk notch at bottom
-  pdf.triangle(
-    iconX + 1.2 * scale, iconY + iconH,
-    iconX + 2.5 * scale, iconY + iconH,
-    iconX + 0.8 * scale, iconY + iconH + 1.1 * scale,
-    'F'
-  );
-
-  // Black cuts inside the bubble
-  pdf.setFillColor(0, 0, 0);
-  const barW = 0.55 * scale;
-  const barY = iconY + 1.0 * scale;
-  const barH = 3.2 * scale;
-  pdf.roundedRect(iconX + 1.1 * scale, barY + 0.5 * scale, barW, barH - 1.0 * scale, 0.25 * scale, 0.25 * scale, 'F');
-  pdf.roundedRect(iconX + 2.1 * scale, barY, barW, barH, 0.25 * scale, 0.25 * scale, 'F');
-  pdf.roundedRect(iconX + 3.1 * scale, barY, barW, barH, 0.25 * scale, 0.25 * scale, 'F');
-  pdf.roundedRect(iconX + 4.1 * scale, barY + 0.5 * scale, barW, barH - 1.0 * scale, 0.25 * scale, 0.25 * scale, 'F');
-
-  // Intercom text wordmark
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(11 * scale);
-  pdf.text('intercom', iconX + iconW + 2.2 * scale, iconY + iconH - 0.9 * scale);
 }
 
 /**
@@ -130,8 +91,8 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
   // Fill the bottom squared corner of header bar
   pdf.rect(outerX, outerY + outerR, outerW, headerH - outerR, 'F');
 
-  // Intercom logo in header (white on left, X ≈ 6.8)
-  drawIntercomLogo(pdf, 6.8, 4.4, 0.95);
+  // Official white-text Intercom logo in the black header
+  pdf.addImage(LABEL_LOGO.src, 'PNG', LABEL_LOGO.x, LABEL_LOGO.y, LABEL_LOGO.w, LABEL_LOGO.h);
 
   // 3. Left Box: rounded rectangle, X: 6.8 to 47.7, Y: 14.4 to 44.8
   const leftX = 6.8;

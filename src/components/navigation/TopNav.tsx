@@ -92,7 +92,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               onClick={() => onNavigate('dashboard')}
               className="flex items-center gap-2.5 text-left focus:outline-none group hover:opacity-90 transition-opacity"
             >
-              <IntercomLogo size="md" variant="dark" />
+              <IntercomLogo size="md" />
               <div className="h-5 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block" />
               <div className="flex flex-col">
                 <span className="text-base font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">

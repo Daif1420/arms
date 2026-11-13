@@ -183,16 +183,16 @@ function MainApp() {
         )}
 
         {activeTab === 'projects' && (
-          <ProjectsView initialFilter={projectsFilter} onNavigate={handleNavigate} />
+          <ProjectsView initialFilter={projectsFilter} />
         )}
 
         {activeTab === 'import' && <ImportDataView onNavigate={handleNavigate} />}
 
         {activeTab === 'labels' && (
-          <LabelsView initialBoxCode={labelInitialBoxCode} onNavigate={handleNavigate} />
+          <LabelsView initialBoxCode={labelInitialBoxCode} />
         )}
 
-        {activeTab === 'reports' && <ReportsView onNavigate={handleNavigate} />}
+        {activeTab === 'reports' && <ReportsView />}
 
         {activeTab === 'audit' && <AuditLogView />}
       </main>

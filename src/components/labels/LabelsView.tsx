@@ -10,14 +10,12 @@ import { useArchive } from '../../context/ArchiveContext';
 import { LabelData } from '../../types';
 import { LabelCanvasPreview } from './LabelCanvasPreview';
 import { buildBoxLabelPackage, generateLabelsPDF } from '../../utils/labelGenerator';
-import { ActiveTab } from '../navigation/TopNav';
 
 interface LabelsViewProps {
   initialBoxCode?: string;
-  onNavigate: (tab: ActiveTab, param?: string) => void;
 }
 
-export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode, onNavigate }) => {
+export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
   const { boxes, language } = useArchive();
 
   // Mode: automatic (from existing box) or manual

@@ -55,7 +55,7 @@ export const LoginView: React.FC = () => {
       <section className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-7 sm:p-9">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <IntercomLogo size="md" variant="dark" />
+            <IntercomLogo size="md" />
             <div className="border-s border-slate-200 dark:border-slate-700 ps-3">
               <div className="font-black tracking-wide text-slate-900 dark:text-white">ARMS</div>
               <div className="text-[10px] text-slate-500">Archive Reports Management</div>

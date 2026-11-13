@@ -8,7 +8,6 @@ import { FileBarChart, Download, Printer, FileSpreadsheet, Search } from 'lucide
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { useArchive } from '../../context/ArchiveContext';
-import { ActiveTab } from '../navigation/TopNav';
 
 export type ReportType =
   | 'archived-projects'
@@ -24,11 +23,7 @@ export type ReportType =
   | 'exception-report'
   | 'force-close-report';
 
-interface ReportsViewProps {
-  onNavigate: (tab: ActiveTab, param?: string) => void;
-}
-
-export const ReportsView: React.FC<ReportsViewProps> = ({ onNavigate }) => {
+export const ReportsView: React.FC = () => {
   const { boxes, dossiers, projects, uploadHistory, auditLogs, language } = useArchive();
 
   const [activeReport, setActiveReport] = useState<ReportType>('archived-projects');

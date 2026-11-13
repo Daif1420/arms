@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { LabelData } from '../../types';
-import { generateQRDataURL, getQRCodeText } from '../../utils/labelGenerator';
+import { generateQRDataURL, getQRCodeText, LABEL_LOGO } from '../../utils/labelGenerator';
 
 
 interface LabelCanvasPreviewProps {
@@ -73,30 +73,15 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
             fill="#000000"
           />
 
-          {/* White Intercom Logo inside header bar */}
-          {/* Speech bubble symbol */}
-          <g transform="translate(6.8, 4.4)">
-            <rect width="5.4" height="4.8" rx="1.1" fill="#FFFFFF" />
-            <path d="M 1.2 4.8 L 2.4 4.8 L 0.8 5.8 Z" fill="#FFFFFF" />
-            {/* 4 dark cutouts */}
-            <rect x="1.0" y="1.5" width="0.5" height="2.2" rx="0.25" fill="#000000" />
-            <rect x="1.9" y="1.0" width="0.5" height="3.0" rx="0.25" fill="#000000" />
-            <rect x="2.8" y="1.0" width="0.5" height="3.0" rx="0.25" fill="#000000" />
-            <rect x="3.7" y="1.5" width="0.5" height="2.2" rx="0.25" fill="#000000" />
-
-            {/* Intercom typography in header */}
-            <text
-              x="7.2"
-              y="4.2"
-              fill="#FFFFFF"
-              fontFamily="Helvetica, Arial, sans-serif"
-              fontSize="3.8"
-              fontWeight="bold"
-              letterSpacing="-0.04em"
-            >
-              intercom
-            </text>
-          </g>
+          {/* Official white-text Intercom logo inside header bar */}
+          <image
+            href={LABEL_LOGO.src}
+            x={LABEL_LOGO.x}
+            y={LABEL_LOGO.y}
+            width={LABEL_LOGO.w}
+            height={LABEL_LOGO.h}
+            preserveAspectRatio="xMinYMid meet"
+          />
         </g>
 
         {/* 3. Left Box: rounded rectangle, X: 6.8 to 47.7, Y: 14.4 to 44.8 */}

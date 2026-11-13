@@ -12,14 +12,12 @@ import React, { useState } from 'react';
 import { FileText, Search, Eye, Edit2, Calendar, History, X, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { Project, ProjectStatus } from '../../types';
-import { ActiveTab } from '../navigation/TopNav';
 
 interface ProjectsViewProps {
   initialFilter?: string;
-  onNavigate: (tab: ActiveTab, param?: string) => void;
 }
 
-export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter, onNavigate }) => {
+export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => {
   const { projects, boxes, updateProjectStatus, language } = useArchive();
 
   const [searchTerm, setSearchTerm] = useState(

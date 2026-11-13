@@ -128,7 +128,6 @@ export function parseExcelWorkbook(
   let headerRowIndex = -1;
   let jobIdColIndex = -1;
   let dateColIndex = -1;
-  let archiveColIndex = -1;
 
   for (let r = 0; r < Math.min(rows.length, 30); r++) {
     const row = rows[r];
@@ -152,7 +151,6 @@ export function parseExcelWorkbook(
       ) {
         dateColIndex = c;
       }
-      if (['archive', 'archive status', 'archived', 'archive flag', 'حالة الأرشيف', 'الأرشيف'].includes(cellVal)) archiveColIndex = c;
     }
 
     if (jobIdColIndex !== -1 && dateColIndex !== -1) {
