@@ -23,7 +23,6 @@ export interface SheetParseResult {
   availableSheets: string[];
   headerRowIndex: number; // 0-indexed
   dataStartRowIndex: number;
-  archiveColumnFound: boolean;
   totalRowsRead: number;
   validRows: ParsedRow[];
   invalidRows: ParsedRow[];
@@ -185,8 +184,8 @@ export function parseExcelWorkbook(
     if (dateColIndex === -1) dateColIndex = jobIdColIndex + 1;
   }
 
-  // Older source sheets without an archive flag are treated as already archived.
-  // When the column exists, its value is preserved as Archived vs Pending.
+  // Status rule: a Job ID present in the file with a valid approval date is Archived (the archive column is ignored).
+  // A row without a valid date stays Pending (reserved).
 
   // Determine data start row (per spec, if header in row 9 (index 8), data starts row 12 (index 11))
   let dataStartRowIndex = headerRowIndex + 1;
@@ -205,11 +204,6 @@ export function parseExcelWorkbook(
 
     const rawJobId = row[jobIdColIndex];
     const rawDate = row[dateColIndex];
-    const rawArchive = archiveColIndex >= 0 ? row[archiveColIndex] : '';
-    const archiveText = String(rawArchive ?? '').trim().toLowerCase();
-    const archiveMeansPresent = /archiv|داخل|تمت|yes|true|نعم/.test(archiveText) || ['1', 'y', 'in'].includes(archiveText);
-    const archiveMeansPending = /to be|to archive|for archive|pending|not in|not archived|تحت|للارشفة|قيد|غير مؤرشف/.test(archiveText) || ['0', 'no', 'false'].includes(archiveText);
-    const archiveStatus: 'Archived' | 'Pending' = archiveColIndex >= 0 && archiveMeansPresent && !archiveMeansPending ? 'Archived' : 'Pending';
 
     // Check if row is empty summary row (like rows 10 & 11)
     if (rawJobId === '' || rawJobId === null || rawJobId === undefined) {
@@ -253,6 +247,8 @@ export function parseExcelWorkbook(
     }
     seenJobIdsInFile.add(jobIdNum);
 
+    const archiveStatus: 'Archived' | 'Pending' = dateApproved ? 'Archived' : 'Pending';
+
     // Check if exists already in system
     const isExisting = existingJobIds ? existingJobIds.has(jobIdNum) : false;
 
@@ -266,7 +262,7 @@ export function parseExcelWorkbook(
         dateApproved,
         archiveStatus,
         status: 'valid',
-        errorNote: [dateResult.error, archiveColIndex < 0 ? 'Archive column not found; safely defaulted to Pending' : ''].filter(Boolean).join(' · '),
+        errorNote: dateResult.error,
         isExisting,
       });
     } else {
@@ -278,7 +274,7 @@ export function parseExcelWorkbook(
         dateApproved,
         archiveStatus,
         status: 'valid',
-        errorNote: archiveColIndex < 0 ? 'Archive column not found; safely defaulted to Pending' : undefined,
+        errorNote: undefined,
         isExisting,
       });
     }
@@ -289,7 +285,6 @@ export function parseExcelWorkbook(
     availableSheets,
     headerRowIndex,
     dataStartRowIndex,
-    archiveColumnFound: archiveColIndex >= 0,
     totalRowsRead: rows.length,
     validRows,
     invalidRows,

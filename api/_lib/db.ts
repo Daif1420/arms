@@ -45,6 +45,7 @@ export function describeError(error: unknown, fallback = 'Authentication service
   const code = String(err?.code || err?.name || 'UNKNOWN');
   const haystack = `${message} ${code}`;
 
+  if (code === 'QUERY_TIMEOUT') return { status: 504, code, error: 'استغرق الاستعلام وقتاً أطول من المسموح. تحقق من سرعة الاتصال بقاعدة البيانات (منطقة Vercel مقابل منطقة Supabase).' };
   if (['42P01', '42883', '42703', '42P10'].includes(code)) return { status: 503, code, error: 'قاعدة البيانات غير مهيأة أو قديمة: شغّل scripts/schema.sql في SQL Editor الخاص بقاعدة البيانات.' };
   if (message.includes('ARMS_SESSION_SECRET')) return { status: 500, code, error: 'ARMS_SESSION_SECRET غير مضبوط أو أقل من 32 حرفاً في Vercel.' };
   if (message.includes('ARMS_ADMIN')) return { status: 500, code, error: 'إعدادات ARMS_ADMIN_USERNAME / ARMS_ADMIN_PASSWORD غير صحيحة (الباسورد 8 أحرف على الأقل).' };

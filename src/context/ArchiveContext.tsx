@@ -15,6 +15,7 @@ import {
   ProjectStatus,
 } from '../types';
 import { buildBoxStructure } from '../utils/archiveCalculations';
+import { apiFetch, errorFrom, loadArchiveSnapshot } from '../utils/archiveApi';
 
 interface ArchiveContextType {
   currentUser: User;
@@ -55,42 +56,6 @@ interface ArchiveContextType {
   toggleUserStatus: (id: string) => Promise<void>;
 }
 
-// Builds a user-facing message from an API error body, appending the error code/detail when present.
-const apiErrorMessage = (body: { error?: string; code?: string; detail?: string } | null, fallback: string) => {
-  const extra = [body?.code, body?.detail].filter(Boolean).join(' — ');
-  return `${body?.error || fallback}${extra ? ` [${extra}]` : ''}`;
-};
-
-// fetch wrapper: always times out, always returns parsed JSON (or null) and never throws on non-JSON bodies.
-// Throws only for network failures / timeouts, with a readable message.
-type ApiResult<T = any> = { ok: boolean; status: number; body: T | null; notJson: boolean; text: string };
-async function apiFetch<T = any>(url: string, init: RequestInit = {}, timeoutMs = 30000): Promise<ApiResult<T>> {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { credentials: 'same-origin', ...init, signal: init.signal ?? controller.signal });
-    const text = await response.text();
-    let body: T | null = null;
-    let notJson = false;
-    try { body = text ? JSON.parse(text) : null; } catch { notJson = true; }
-    return { ok: response.ok, status: response.status, body, notJson, text: notJson ? text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : '' };
-  } catch (error) {
-    if (controller.signal.aborted) throw new Error('انتهت مهلة الاتصال بالخادم. تحقق من الإنترنت أو من إعدادات قاعدة البيانات (DATABASE_URL).');
-    throw new Error('تعذر الوصول إلى الخادم. تحقق من الاتصال بالإنترنت.');
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
-
-const NOT_JSON_MESSAGE = 'الخادم لم يرد بصيغة JSON: واجهة /api غير متاحة. على الجهاز شغّل المشروع بـ "npm run dev:api" (Vercel CLI) وليس "npm run dev"، أو افتح رابط Vercel بعد النشر.';
-const errorFrom = (r: ApiResult, fallback: string) => {
-  if (!r.notJson) return apiErrorMessage(r.body, `${fallback} (${r.status})`);
-  // A 404 on /api means the API is not running at all (plain `npm run dev`). Any other non-JSON reply is a
-  // Vercel platform error (timeout, crash, or response larger than the 4.5 MB limit): show its status and text.
-  if (r.status === 404 || r.status === 200) return NOT_JSON_MESSAGE;
-  return `${fallback}: رد الخادم برمز ${r.status} بدل JSON${r.text ? ` — ${r.text}` : ''}. غالباً انتهت مهلة الدالة أو تجاوز حجم الرد 4.5MB؛ راجع Logs في Vercel.`;
-};
-
 const ArchiveContext = createContext<ArchiveContextType | undefined>(undefined);
 
 
@@ -120,9 +85,7 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setArchiveLoading(true);
     setArchiveLoadError('');
     try {
-    const r = await apiFetch('/api/state', {}, 60000);
-    if (!r.ok || !r.body) throw new Error(errorFrom(r, 'تعذر تحميل بيانات الأرشيف'));
-    const parsed = r.body;
+    const parsed = await loadArchiveSnapshot();
     // The state we just loaded is already stored; do not write it straight back.
     skipNextSaveRef.current = true;
     setBoxes(parsed.boxes || []);

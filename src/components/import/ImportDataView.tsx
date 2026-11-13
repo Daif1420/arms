@@ -207,7 +207,6 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
               <p className="text-xs text-slate-500 font-mono mt-0.5">
                 {uploadedFileName} · {parseResult.validRows.length} {language === 'ar' ? 'مشروع جاهز للاستيراد' : 'records ready'}
               </p>
-              {!parseResult.archiveColumnFound && <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-1">{language === 'ar' ? 'تنبيه: عمود Archive غير موجود؛ سيتم تسجيل كل الصفوف كـ To Be Archived لحماية البيانات.' : 'Warning: Archive column not found; rows will default to Pending.'}</p>}
             </div>
 
             {/* Sheet Selector */}

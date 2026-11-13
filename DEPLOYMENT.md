@@ -36,7 +36,7 @@ Do not use `VITE_` prefixes for secrets. Never commit real credentials.
 - [ ] Print and physically verify box/dossier labels with the actual Zebra printer before bulk operations.
 
 ## Known scope boundary
-The browser currently sends the full archive state when saving. PostgreSQL stores records in separate relational tables and synchronizes them atomically, but the client still loads the archive as a whole. For very large archives, implement paginated queries and dedicated import/status/delivery endpoints before company-wide high-volume operation. Data Entry and Viewer are read-only at this stage; assign Archive Manager only to users who may change archive data.
+The browser currently sends the full archive state when saving. PostgreSQL stores records in separate relational tables and synchronizes them atomically, but the client still loads the whole archive into memory. Loading is split into small parallel requests (`/api/state?part=core|projects|audit`) so no single request can hit the Vercel timeout or the 4.5 MB response limit. For very large archives, implement paginated queries and dedicated import/status/delivery endpoints before company-wide high-volume operation. Data Entry and Viewer are read-only at this stage; assign Archive Manager only to users who may change archive data.
 
 
 ## Environment administrator bootstrap
