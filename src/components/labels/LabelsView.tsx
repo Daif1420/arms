@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Download, ZoomIn, ZoomOut, Info } from 'lucide-react';
+import { Printer, FileDown, ZoomIn, ZoomOut } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { LabelData } from '../../types';
 import { LabelCanvasPreview, LabelVectorSvg } from './LabelCanvasPreview';
@@ -95,6 +95,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
         html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; }
         body > *:not(#arms-label-print-portal) { display: none !important; }
         #arms-label-print-portal { display: block !important; position: static !important; margin: 0 !important; padding: 0 !important; }
+        #arms-label-print-portal * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       }
     `;
     document.head.appendChild(styleEl);
@@ -161,16 +162,16 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#3F4144] dark:text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Printer className="w-6 h-6 text-[#0B56A8] dark:text-blue-400" />
-            <span>{language === 'ar' ? 'نظام طباعة الليبلات الحرارية (100×50 مم)' : 'Thermal Label Generator (100x50 mm)'}</span>
+            <span>{language === 'ar' ? 'نظام طباعة الليبلات الحرارية (100×50 مم)' : 'Thermal Label Generator (100×50 mm)'}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-neutral-400 mt-0.5">
             {language === 'ar'
-              ? 'مطابق بنسبة 100% للمواصفة المعتمدة لليبل الأرشيف — أسود وأبيض فقط لطباعة Zebra، وشعار Intercom مدمج.'
-              : 'Strict 1:1 conformity with approved thermal archive label specification — Monochrome Zebra ready.'}
+              ? 'معاينة وطباعة ليبلات البوكسات والدوسيهات بمقاس 100×50 مم مع رمز QR.'
+              : 'Preview and print 100×50 mm monochrome archive box and dossier labels with QR codes.'}
           </p>
         </div>
 
@@ -180,9 +181,9 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             type="button"
             onClick={() => handleDirectPrint(activeLabels)}
             disabled={preparingPrint}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0B56A8] hover:bg-[#094488] rounded-lg transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap"
+            className="group inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 dark:text-neutral-200 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:bg-[#0B56A8] hover:border-[#0B56A8] hover:text-white dark:hover:bg-[#0B56A8] dark:hover:border-[#0B56A8] dark:hover:text-white rounded-lg transition-colors shadow-xs disabled:opacity-50 whitespace-nowrap"
           >
-            <Printer className="w-3.5 h-3.5" />
+            <Printer className="w-3.5 h-3.5 text-[#0B56A8] dark:text-blue-400 group-hover:text-white transition-colors" />
             <span>
               {preparingPrint
                 ? (language === 'ar' ? 'جاري التجهيز للطباعة...' : 'Preparing Print...')
@@ -196,9 +197,9 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             type="button"
             onClick={handleDownloadPDF}
             disabled={generatingPdf}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[#3F4144] dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] hover:text-[#0B56A8] dark:hover:text-blue-400 rounded-lg transition-colors shadow-xs disabled:opacity-50 whitespace-nowrap"
+            className="group inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 dark:text-neutral-200 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 hover:bg-[#E52225] hover:border-[#E52225] hover:text-white dark:hover:bg-red-600 dark:hover:border-red-600 dark:hover:text-white rounded-lg transition-colors shadow-xs disabled:opacity-50 whitespace-nowrap"
           >
-            <Download className="w-3.5 h-3.5" />
+            <FileDown className="w-3.5 h-3.5 text-[#E52225] dark:text-red-400 group-hover:text-white transition-colors" />
             <span>
               {generatingPdf
                 ? (language === 'ar' ? 'جاري تجهيز PDF...' : 'Generating PDF...')
@@ -215,43 +216,43 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
         {/* Controls */}
         <div className="lg:col-span-5 space-y-4">
           {/* Mode Selector */}
-          <div className="bg-white dark:bg-[#111827] p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-            <label className="block text-xs font-bold text-[#3F4144] dark:text-white">
+          <div className="bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200 dark:border-neutral-800 space-y-3">
+            <label className="block text-xs font-bold text-slate-900 dark:text-white">
               {language === 'ar' ? 'طريقة تحديد الليبل' : 'Generation Mode'}
             </label>
 
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-neutral-900 rounded-lg">
               <button
                 type="button"
                 onClick={() => setMode('automatic')}
-                className={`py-2 px-2 text-xs font-semibold rounded-lg border transition-colors text-center ${
+                className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-colors text-center ${
                   mode === 'automatic'
-                    ? 'border-[#0B56A8] bg-[#0B56A8] text-white'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'bg-white dark:bg-[#111111] text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {language === 'ar' ? 'آلي (من بوكس)' : 'Automatic (Box)'}
+                {language === 'ar' ? 'آلي (من بوكس)' : 'Automatic'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setMode('manual')}
-                className={`py-2 px-2 text-xs font-semibold rounded-lg border transition-colors text-center ${
+                className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-colors text-center ${
                   mode === 'manual'
-                    ? 'border-[#0B56A8] bg-[#0B56A8] text-white'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'bg-white dark:bg-[#111111] text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {language === 'ar' ? 'يدوي (Manual)' : 'Manual (Range)'}
+                {language === 'ar' ? 'يدوي' : 'Manual'}
               </button>
 
               <button
                 type="button"
                 onClick={() => setMode('single-dossier')}
-                className={`py-2 px-2 text-xs font-semibold rounded-lg border transition-colors text-center ${
+                className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-colors text-center ${
                   mode === 'single-dossier'
-                    ? 'border-[#0B56A8] bg-[#0B56A8] text-white'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    ? 'bg-white dark:bg-[#111111] text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {language === 'ar' ? 'دوسيه منفرد' : 'Single Dossier'}
@@ -262,27 +263,29 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             {mode === 'automatic' && (
               <div className="space-y-3 pt-2">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                     {language === 'ar' ? 'اختر البوكس المطلوب' : 'Select Box from System'}
                   </label>
                   <select
                     value={selectedBoxCode}
                     onChange={e => setSelectedBoxCode(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-bold focus:outline-none focus:border-[#0B56A8]"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg font-bold focus:outline-none focus:border-[#0B56A8]"
                   >
-                    {boxes.map(b => (
-                      <option key={b.id} value={b.boxCode}>
-                        Box {b.boxCode} (#{b.firstJobId} → #{b.lastJobId})
-                      </option>
-                    ))}
+                    {[...boxes]
+                      .sort((a, b) => a.firstJobId - b.firstJobId)
+                      .map(b => (
+                        <option key={b.id} value={b.boxCode}>
+                          Box {b.boxCode} (#{b.firstJobId} → #{b.lastJobId})
+                        </option>
+                      ))}
                   </select>
                 </div>
 
-                <div className="p-3 bg-[#EAF2FB]/60 dark:bg-slate-800 rounded-lg text-xs space-y-1 border border-[#0B56A8]/15 dark:border-slate-700">
+                <div className="p-3 bg-[#EAF2FB]/60 dark:bg-neutral-900 rounded-lg text-xs space-y-1 border border-[#0B56A8]/15 dark:border-neutral-800">
                   <div className="font-bold text-[#0B56A8] dark:text-blue-400">
                     {language === 'ar' ? 'حزمة الليبلات الناتجة (7 صفحات):' : 'Output Package (7 Pages):'}
                   </div>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-300 tabular-nums" dir="ltr">
+                  <div className="text-[11px] text-slate-600 dark:text-neutral-300 tabular-nums" dir="ltr">
                     · Page 1: Box {currentBox?.boxCode || selectedBoxCode} (#{currentBox?.firstJobId} → #{currentBox?.lastJobId})
                     <br />
                     · Pages 2-7: Dossiers 1 to 6 (50 projects each)
@@ -295,30 +298,30 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             {mode === 'manual' && (
               <div className="space-y-3 pt-2">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                     {language === 'ar' ? 'كود البوكس (Box Code)' : 'Box Code'}
                   </label>
                   <input
                     type="text"
                     value={manualBoxCode}
                     onChange={e => setManualBoxCode(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg uppercase font-bold focus:outline-none focus:border-[#0B56A8]"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg uppercase font-bold focus:outline-none focus:border-[#0B56A8]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                     {language === 'ar' ? 'رقم أول مشروع في البوكس (First Job ID)' : 'First Project Number'}
                   </label>
                   <input
                     type="number"
                     value={manualFirstJobId}
                     onChange={e => setManualFirstJobId(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg tabular-nums font-bold focus:outline-none focus:border-[#0B56A8]"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg tabular-nums font-bold focus:outline-none focus:border-[#0B56A8]"
                   />
                 </div>
 
-                <div className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg tabular-nums">
+                <div className="text-[11px] text-slate-500 bg-slate-50 dark:bg-neutral-900 p-2.5 rounded-lg tabular-nums">
                   {language === 'ar'
                     ? `النظام يحسب تلقائيًا آخر رقم (+299): #${Number(manualFirstJobId) + 299} ونطاقات الـ 6 دوسيهات (+49 لكل دوسيه).`
                     : `System auto-calculates last ID (+299): #${Number(manualFirstJobId) + 299} and all 6 dossier spans (+49 each).`}
@@ -331,19 +334,19 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
               <div className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                       {language === 'ar' ? 'كود البوكس' : 'Box Code'}
                     </label>
                     <input
                       type="text"
                       value={manualBoxCode}
                       onChange={e => setManualBoxCode(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg uppercase font-bold focus:outline-none focus:border-[#0B56A8]"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg uppercase font-bold focus:outline-none focus:border-[#0B56A8]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                       {language === 'ar' ? 'رقم الدوسيه (1-6)' : 'Dossier # (1-6)'}
                     </label>
                     <select
@@ -353,7 +356,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                         setSingleDossierNumber(dNum);
                         setSingleDossierFirstJobId(35500 + (dNum - 1) * 50);
                       }}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-bold focus:outline-none focus:border-[#0B56A8]"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg font-bold focus:outline-none focus:border-[#0B56A8]"
                     >
                       {[1, 2, 3, 4, 5, 6].map(num => (
                         <option key={num} value={num}>
@@ -365,14 +368,14 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 dark:text-neutral-400 mb-1">
                     {language === 'ar' ? 'رقم أول مشروع في الدوسيه' : 'First Project in Dossier'}
                   </label>
                   <input
                     type="number"
                     value={singleDossierFirstJobId}
                     onChange={e => setSingleDossierFirstJobId(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg tabular-nums font-bold focus:outline-none focus:border-[#0B56A8]"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg tabular-nums font-bold focus:outline-none focus:border-[#0B56A8]"
                   />
                   <div className="text-[11px] text-slate-400 mt-1 tabular-nums">
                     {language === 'ar'
@@ -383,30 +386,14 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
               </div>
             )}
           </div>
-
-          {/* Standards & Geometry Specifications Card */}
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs space-y-1.5">
-            <div className="font-bold text-[#3F4144] dark:text-white flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-[#0B56A8] dark:text-blue-400" />
-              <span>{language === 'ar' ? 'المعايير الهندسية لليبل الحراري:' : 'Approved Thermal Geometry:'}</span>
-            </div>
-            <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-              <li>· <strong>Dimensions:</strong> 100 × 50 mm (Landscape).</li>
-              <li>· <strong>Header Bar:</strong> Solid black top with white Intercom logo.</li>
-              <li>· <strong>Left Box:</strong> Rounded rect with divider at Y ≈ 35mm.</li>
-              <li>· <strong>QR Code:</strong> Top right (X: 62.5, Y: 14.8) with corner brackets.</li>
-              <li>· <strong>Range:</strong> FROM / TO box (50.9 → 94 mm) split vertically.</li>
-              <li>· <strong>Colors:</strong> 100% Monochrome Black/White. No gradients.</li>
-            </ul>
-          </div>
         </div>
 
         {/* Live 1:1 Vector Preview & Carousel Switcher */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white dark:bg-[#111827] p-5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-[#111111] p-5 rounded-xl border border-slate-200 dark:border-neutral-800 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800">
               <div>
-                <h2 className="text-sm font-bold text-[#3F4144] dark:text-white">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                   {language === 'ar' ? 'المعاينة المباشرة (مطابقة 1:1 للطباعة)' : 'Live 1:1 Print Preview'}
                 </h2>
                 <div className="text-[11px] text-slate-500">
@@ -430,11 +417,11 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                   </button>
                 )}
 
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-neutral-900 p-1 rounded-lg">
                   <button
                     type="button"
                     onClick={() => setPreviewScale(prev => Math.max(0.7, prev - 0.1))}
-                    className="p-1 text-slate-600 dark:text-slate-300 hover:text-[#0B56A8] rounded"
+                    className="p-1 text-slate-600 dark:text-neutral-300 hover:text-[#0B56A8] rounded"
                     title="Zoom Out"
                   >
                     <ZoomOut className="w-3.5 h-3.5" />
@@ -445,7 +432,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                   <button
                     type="button"
                     onClick={() => setPreviewScale(prev => Math.min(1.4, prev + 0.1))}
-                    className="p-1 text-slate-600 dark:text-slate-300 hover:text-[#0B56A8] rounded"
+                    className="p-1 text-slate-600 dark:text-neutral-300 hover:text-[#0B56A8] rounded"
                     title="Zoom In"
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
@@ -455,7 +442,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             </div>
 
             {/* Canvas Preview Center */}
-            <div className="p-6 bg-slate-100 dark:bg-[#0B111A] rounded-xl flex items-center justify-center overflow-auto min-h-[260px]">
+            <div className="p-6 bg-slate-100 dark:bg-black rounded-xl flex items-center justify-center overflow-auto min-h-[260px]">
               {currentPreviewLabel && (
                 <LabelCanvasPreview data={currentPreviewLabel} scale={previewScale} />
               )}
@@ -464,7 +451,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
             {/* Carousel Tabs for the 7 pages */}
             {activeLabels.length > 1 && (
               <div>
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <div className="text-xs font-bold text-slate-700 dark:text-neutral-300 mb-2">
                   {language === 'ar' ? 'صفحات الملف السبعة (اختر للمعاينة):' : 'Package Pages (Click to inspect):'}
                 </div>
                 <div className="grid grid-cols-7 gap-1.5">
@@ -476,10 +463,10 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                       className={`p-2 rounded-lg border text-center transition-all ${
                         activePreviewIndex === idx
                           ? 'border-[#0B56A8] bg-[#0B56A8] text-white font-bold shadow-xs'
-                          : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          : 'border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-800'
                       }`}
                     >
-                      <div className="text-[10px] uppercase">
+                      <div className="text-[10px]">
                         {l.type === 'box' ? 'Box' : `D${l.dossierNumber}`}
                       </div>
                       <div className="text-[9px] opacity-80 truncate tabular-nums">

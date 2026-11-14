@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json({ user: mapUser(rows[0]) });
     }
     if (req.method === 'PATCH') {
-      const { id, role, active } = req.body || {};
+      const { id, name, email, role, active, password, resetPassword } = req.body || {};
       if (
         !id ||
         (role !== undefined && !['System Admin', 'Archive Manager', 'Data Entry', 'Viewer'].includes(role)) ||
@@ -68,16 +68,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (id === session.sub && role && role !== 'System Admin') {
         return res.status(400).json({ error: 'You cannot lower your own administrator role.' });
       }
+      let nextName: string | null = null;
+      if (name !== undefined) {
+        const trimmedName = String(name).trim();
+        if (!trimmedName || trimmedName.length > 120) {
+          return res.status(400).json({ error: 'الاسم الكامل غير صالح.' });
+        }
+        nextName = trimmedName;
+      }
+      const nextEmail: string | null = email !== undefined ? String(email).trim().slice(0, 160) : null;
+      let nextPasswordHash: string | null = null;
+      if (resetPassword === true) {
+        nextPasswordHash = await hashPassword('P@ssw0rd');
+      } else if (password !== undefined) {
+        if (typeof password !== 'string' || password.length < 1 || password.length > 256) {
+          return res.status(400).json({ error: 'يرجى إدخال كلمة مرور صالحة.' });
+        }
+        nextPasswordHash = await hashPassword(password);
+      }
       const rows = await sql`UPDATE arms_users
-        SET role = COALESCE(${role ?? null}, role),
+        SET name = COALESCE(${nextName}, name),
+            email = COALESCE(${nextEmail}, email),
+            role = COALESCE(${role ?? null}, role),
             active = COALESCE(${active ?? null}, active),
+            password_hash = COALESCE(${nextPasswordHash}, password_hash),
             updated_at = NOW()
         WHERE id = ${id}
         RETURNING id, username, email, name, role, active, last_login`;
       if (!rows.length) return res.status(404).json({ error: 'User not found.' });
       return res.status(200).json({ user: mapUser(rows[0]) });
     }
-    res.setHeader('Allow', 'GET, POST, PATCH');
+    if (req.method === 'DELETE') {
+      const id = String(req.body?.id || req.query?.id || '').trim();
+      if (!id) return res.status(400).json({ error: 'Invalid user ID.' });
+      if (id === session.sub) {
+        return res.status(400).json({ error: 'لا يمكنك حذف حسابك الحالي أثناء تسجيل الدخول.' });
+      }
+      const rows = await sql`DELETE FROM arms_users WHERE id = ${id} RETURNING id`;
+      if (!rows.length) return res.status(404).json({ error: 'User not found.' });
+      return res.status(200).json({ ok: true, deletedId: id });
+    }
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return res.status(405).json({ error: 'Method not allowed.' });
   } catch (error: any) {
     if (error?.code === '23505') return res.status(409).json({ error: 'اسم المستخدم مستخدم بالفعل.' });

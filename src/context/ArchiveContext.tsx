@@ -68,8 +68,12 @@ interface ArchiveContextType {
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
   addUser: (user: Omit<User, 'id' | 'lastLogin'>, password: string) => Promise<void>;
-  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+  updateUser: (
+    id: string,
+    updates: Partial<User> & { password?: string; resetPassword?: boolean }
+  ) => Promise<void>;
   toggleUserStatus: (id: string) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
 }
 
 const ArchiveContext = createContext<ArchiveContextType | undefined>(undefined);
@@ -628,21 +632,57 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     addAuditLog('Add User', 'User', r.body.user.id, `Created user account for ${r.body.user.name} (${r.body.user.role})`);
   };
 
-  const updateUser = async (id: string, updates: Partial<User>) => {
+  const updateUser = async (
+    id: string,
+    updates: Partial<User> & { password?: string; resetPassword?: boolean }
+  ) => {
     const r = await apiFetch('/api/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...updates }),
     });
     if (!r.ok || !r.body?.user) throw new Error(errorFrom(r, 'تعذر تحديث المستخدم'));
-    setUsers(prev => prev.map(u => (u.id === id ? r.body.user : u)));
-    addAuditLog('Update User', 'User', id, `Updated account settings for user ID ${id}`);
+    const updatedUser: User = r.body.user;
+    setUsers(prev => prev.map(u => (u.id === id ? updatedUser : u)));
+    if (id === currentUser.id) {
+      setCurrentUser(updatedUser);
+    }
+    const changedFields: string[] = [];
+    if (updates.name !== undefined) changedFields.push(`name="${updatedUser.name}"`);
+    if (updates.email !== undefined) changedFields.push(`email="${updatedUser.email}"`);
+    if (updates.role !== undefined) changedFields.push(`role=${updatedUser.role}`);
+    if (updates.active !== undefined) changedFields.push(`active=${updatedUser.active}`);
+    if (updates.resetPassword) changedFields.push('password reset to default');
+    else if (updates.password) changedFields.push('password changed');
+    addAuditLog(
+      'Update User',
+      'User',
+      id,
+      `Updated user ${updatedUser.name} (@${updatedUser.username}): ${changedFields.join(', ') || 'account updated'}`
+    );
   };
 
   const toggleUserStatus = async (id: string) => {
     const target = users.find(u => u.id === id);
     if (!target) return;
     await updateUser(id, { active: !target.active });
+  };
+
+  const deleteUser = async (id: string) => {
+    const target = users.find(u => u.id === id);
+    const r = await apiFetch('/api/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!r.ok) throw new Error(errorFrom(r, 'تعذر حذف المستخدم'));
+    setUsers(prev => prev.filter(u => u.id !== id));
+    addAuditLog(
+      'Delete User',
+      'User',
+      id,
+      `Deleted user account ${target ? `${target.name} (@${target.username})` : id}`
+    );
   };
 
   return (
@@ -683,6 +723,7 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addUser,
         updateUser,
         toggleUserStatus,
+        deleteUser,
       }}
     >
       {children}

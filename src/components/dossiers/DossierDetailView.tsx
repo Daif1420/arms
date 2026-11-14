@@ -25,7 +25,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
   const dossier = dossiers.find(d => d.id === dossierId);
   if (!dossier) {
     return (
-      <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="p-8 text-center bg-white dark:bg-[#111111] rounded-xl border border-slate-200 dark:border-neutral-800">
         <p className="text-sm text-slate-500">{language === 'ar' ? 'الدوسيه غير موجود.' : 'Dossier not found.'}</p>
         <button onClick={() => onNavigate('dossiers')} className="mt-3 text-xs font-semibold text-[#0B56A8] underline">
           {language === 'ar' ? 'العودة للدوسيهات' : 'Back to Dossiers'}
@@ -42,13 +42,13 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate('box-detail', dossier.boxId)}
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] hover:text-[#0B56A8] transition-colors text-slate-600 dark:text-slate-300"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-neutral-800 hover:border-[#0B56A8] hover:text-[#0B56A8] dark:hover:text-blue-400 transition-colors text-slate-600 dark:text-neutral-300"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           </button>
           <div>
             <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
                 {dossier.status}
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
               {language === 'ar'
                 ? `النطاق التسلسلي: من #${dossier.fromJobId} إلى #${dossier.toJobId} (50 مشروع)`
                 : `Sequence Range: #${dossier.fromJobId} → #${dossier.toJobId} (50 Project Slots)`}
@@ -82,7 +82,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200 dark:border-neutral-800">
         <div>
           <span className="text-[11px] text-slate-500">{language === 'ar' ? 'المشاريع المؤرشفة' : 'Archived'}</span>
           <div className="text-xl font-bold text-[#0B56A8] dark:text-blue-400 tabular-nums">{dossier.archivedCount} / 50</div>
@@ -97,7 +97,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
 
         <div>
           <span className="text-[11px] text-slate-500">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</span>
-          <div className="text-xl font-bold text-slate-700 dark:text-slate-300 tabular-nums">{dossier.pendingCount}</div>
+          <div className="text-xl font-bold text-slate-700 dark:text-neutral-300 tabular-nums">{dossier.pendingCount}</div>
           <span className="text-[10px] text-slate-400">{language === 'ar' ? 'لم تستورد' : 'Awaiting delivery'}</span>
         </div>
 
@@ -108,7 +108,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
+      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -127,7 +127,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
                 className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
                   filterStatus === s
                     ? 'bg-[#0B56A8] text-white font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-900'
                 }`}
               >
                 {s === 'all' && (language === 'ar' ? 'الكل (50)' : 'All (50)')}
@@ -151,13 +151,13 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
                   onNavigate('projects', String(p.jobId));
                 }}
                 className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center ${
-                  !isMatch ? 'opacity-20' : 'hover:scale-105 hover:shadow-xs cursor-pointer'
+                  !isMatch ? 'opacity-20 cursor-default' : 'hover:scale-105 hover:shadow-xs cursor-pointer'
                 } ${
                   p.status === 'Archived'
                     ? 'bg-[#EAF2FB] border-blue-200 dark:bg-[#0B56A8]/25 dark:border-blue-800 text-[#0B56A8] dark:text-blue-200'
                     : p.status === 'Missing'
                     ? 'bg-red-50 border-red-300 dark:bg-red-950/50 dark:border-red-800 text-[#E52225] dark:text-red-200'
-                    : 'bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    : 'bg-slate-50 border-slate-200 dark:bg-neutral-900 dark:border-neutral-800 text-slate-600 dark:text-neutral-400'
                 }`}
               >
                 <span className="text-[10px] text-slate-400">#{idx + 1}</span>
@@ -168,7 +168,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
           })}
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
+        <div className="flex items-center justify-center gap-6 pt-3 border-t border-slate-100 dark:border-neutral-800 text-xs text-slate-500">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm bg-[#0B56A8] inline-block" />
             <span>{language === 'ar' ? 'مؤرشف (Archived)' : 'Archived'}</span>
@@ -178,7 +178,7 @@ export const DossierDetailView: React.FC<DossierDetailViewProps> = ({
             <span>{language === 'ar' ? 'مفقود (Missing)' : 'Missing'}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-slate-300 dark:bg-slate-600 inline-block" />
+            <span className="w-3 h-3 rounded-sm bg-slate-300 dark:bg-neutral-700 inline-block" />
             <span>{language === 'ar' ? 'قيد الانتظار (Pending)' : 'Pending'}</span>
           </div>
         </div>

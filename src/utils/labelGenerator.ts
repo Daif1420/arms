@@ -8,9 +8,15 @@ import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { LabelData } from '../types';
 import logoDark from '../assets/logo-dark.png?inline';
+import armsLogoDark from '../assets/arms-logo-dark.png?inline';
 
-/** White-text Intercom logo placed inside the black label header (source is 250 x 56 px). */
-export const LABEL_LOGO = { src: logoDark, x: 6.8, y: 4.2, h: 6.4, w: 6.4 * (250 / 56) } as const;
+/** White-text Intercom logo placed on the left side of the black label header (source is 250 x 56 px). */
+export const LABEL_LOGO = { src: logoDark, x: 6.4, y: 4.1, h: 6.4, w: 6.4 * (250 / 56) } as const;
+
+/** White-text ARMS logo placed on the right side of the black label header (source is 600 x 166 px). */
+const ARMS_H = 6.6;
+const ARMS_W = ARMS_H * (600 / 166);
+export const LABEL_ARMS_LOGO = { src: armsLogoDark, x: 94.0 - ARMS_W, y: 3.9, h: ARMS_H, w: ARMS_W } as const;
 
 /**
  * Generate standard QR code payload text matching the specification exactly
@@ -43,7 +49,7 @@ export async function generateQRDataURL(text: string): Promise<string> {
  */
 function drawCornerBrackets(pdf: jsPDF, x: number, y: number, w: number, h: number, len: number) {
   pdf.setDrawColor(0, 0, 0);
-  pdf.setLineWidth(0.4);
+  pdf.setLineWidth(0.6);
 
   // Top-left
   pdf.line(x, y + len, x, y);
@@ -70,44 +76,52 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, 100, 50, 'F');
 
-  // 1. Outer Border: rounded rectangle, X: 4 to 97, Y: 2.5 to 47.4
-  const outerX = 4;
+  // 1. Outer Border: rounded rectangle, X: 3.5 to 96.5, Y: 2.5 to 47.5
+  const outerX = 3.5;
   const outerY = 2.5;
   const outerW = 93;
-  const outerH = 44.9;
-  const outerR = 2.8;
+  const outerH = 45;
+  const outerR = 2.6;
 
   pdf.setDrawColor(0, 0, 0);
-  pdf.setLineWidth(0.4);
+  pdf.setLineWidth(0.65);
   pdf.roundedRect(outerX, outerY, outerW, outerH, outerR, outerR, 'S');
 
-  // 2. Header: Solid black bar top of the frame, Y: 2.5 to 11.9
-  const headerH = 9.4;
+  // 2. Header: Solid black bar top of the frame, Y: 2.5 to 11.8
+  const headerH = 9.3;
   pdf.setFillColor(0, 0, 0);
 
   // Clip to outer frame rounded top corners
-  // We can draw rounded rectangle for top portion
   pdf.roundedRect(outerX, outerY, outerW, headerH, outerR, outerR, 'F');
   // Fill the bottom squared corner of header bar
   pdf.rect(outerX, outerY + outerR, outerW, headerH - outerR, 'F');
 
-  // Official white-text Intercom logo in the black header
+  // Official white-text Intercom logo (left) & ARMS logo (right) in the black header
   pdf.addImage(LABEL_LOGO.src, 'PNG', LABEL_LOGO.x, LABEL_LOGO.y, LABEL_LOGO.w, LABEL_LOGO.h);
+  pdf.addImage(
+    LABEL_ARMS_LOGO.src,
+    'PNG',
+    LABEL_ARMS_LOGO.x,
+    LABEL_ARMS_LOGO.y,
+    LABEL_ARMS_LOGO.w,
+    LABEL_ARMS_LOGO.h
+  );
 
-  // 3. Left Box: rounded rectangle, X: 6.8 to 47.7, Y: 14.4 to 44.8
-  const leftX = 6.8;
-  const leftY = 14.4;
-  const leftW = 40.9;
-  const leftH = 30.4;
+  // 3. Left Box: rounded rectangle, X: 6.4 to 47.9, Y: 13.8 to 45.0
+  const leftX = 6.4;
+  const leftY = 13.8;
+  const leftW = 41.5;
+  const leftH = 31.2;
   const leftR = 2.0;
 
   pdf.setDrawColor(0, 0, 0);
-  pdf.setLineWidth(0.45);
+  pdf.setLineWidth(0.6);
   pdf.setFillColor(255, 255, 255);
   pdf.roundedRect(leftX, leftY, leftW, leftH, leftR, leftR, 'S');
 
-  // Horizontal divider inside left box at Y ≈ 35
-  const divY = 35.0;
+  // Horizontal divider inside left box at Y = 34.2
+  const divY = 34.2;
+  pdf.setLineWidth(0.55);
   pdf.line(leftX, divY, leftX + leftW, divY);
 
   // Contents of Left Box
@@ -115,38 +129,37 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
     // Upper section: Huge Box Code (e.g. "D42")
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(36);
-    pdf.text(data.boxCode, leftX + leftW / 2, divY - 4.5, { align: 'center' });
+    pdf.setFontSize(42);
+    pdf.text(data.boxCode, leftX + leftW / 2, 28.8, { align: 'center' });
 
-    // Lower section: "ARCHIVE BOX" uppercase bold with letter spacing
-    pdf.setFontSize(8.5);
+    // Lower section: "ARCHIVE BOX" bold
+    pdf.setFontSize(9.5);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('A R C H I V E   B O X', leftX + leftW / 2, leftY + leftH - 3.4, { align: 'center' });
+    pdf.text('A R C H I V E   B O X', leftX + leftW / 2, 41.3, { align: 'center' });
   } else {
     // Dossier Label
-    // Upper section: Word "Dossier" bold, then large bold dossier number
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10.2);
-    pdf.text('Dossier', leftX + leftW / 2, 18.7, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.text('Dossier', leftX + leftW / 2, 18.2, { align: 'center' });
 
-    pdf.setFontSize(41);
+    pdf.setFontSize(44);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(String(data.dossierNumber || 1), leftX + leftW / 2, 32.6, { align: 'center' });
+    pdf.text(String(data.dossierNumber || 1), leftX + leftW / 2, 31.8, { align: 'center' });
 
     // Lower section: "Box" bold, and below it larger Box code bold
-    pdf.setFontSize(7.2);
-    pdf.text('Box', leftX + leftW / 2, 38.3, { align: 'center' });
+    pdf.setFontSize(8.5);
+    pdf.text('Box', leftX + leftW / 2, 38.0, { align: 'center' });
 
-    pdf.setFontSize(13);
-    pdf.text(data.boxCode, leftX + leftW / 2, 43.3, { align: 'center' });
+    pdf.setFontSize(15.5);
+    pdf.text(data.boxCode, leftX + leftW / 2, 43.5, { align: 'center' });
   }
 
   // 4. QR Code: centered directly over Range Box (center X = 72.45)
-  const qrX = 63.2;
-  const qrY = 14.8;
-  const qrSize = 18.5;
-  const qrBracketPad = 1.7;
+  const qrX = 63.45;
+  const qrY = 14.4;
+  const qrSize = 18.0;
+  const qrBracketPad = 1.5;
 
   // Corner brackets around QR code
   drawCornerBrackets(
@@ -155,7 +168,7 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
     qrY - qrBracketPad,
     qrSize + qrBracketPad * 2,
     qrSize + qrBracketPad * 2,
-    3.0
+    3.2
   );
 
   const qrText = getQRCodeText(data);
@@ -166,37 +179,38 @@ export async function renderLabelOnPDF(pdf: jsPDF, data: LabelData) {
     console.error('Failed generating QR code for label:', err);
   }
 
-  // 5. Range Box (FROM / TO): rounded rectangle, X: 50.9 to 94, Y: 36.1 to 44.7
-  const rangeX = 50.9;
-  const rangeY = 36.1;
-  const rangeW = 43.1;
-  const rangeH = 8.6;
+  // 5. Range Box (FROM / TO): rounded rectangle, X: 50.5 to 94.4, Y: 35.0 to 45.0
+  const rangeX = 50.5;
+  const rangeY = 35.0;
+  const rangeW = 43.9;
+  const rangeH = 10.0;
   const rangeR = 1.8;
   const rangeMidX = 72.45;
 
   pdf.setDrawColor(0, 0, 0);
-  pdf.setLineWidth(0.45);
+  pdf.setLineWidth(0.6);
   pdf.roundedRect(rangeX, rangeY, rangeW, rangeH, rangeR, rangeR, 'S');
 
   // Vertical dividing line at X = 72.45
+  pdf.setLineWidth(0.55);
   pdf.line(rangeMidX, rangeY, rangeMidX, rangeY + rangeH);
 
   // FROM Section
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(6.5);
+  pdf.setFontSize(8.0);
   const leftHalfCenter = rangeX + (rangeMidX - rangeX) / 2;
-  pdf.text('FROM', leftHalfCenter, 38.7, { align: 'center' });
+  pdf.text('FROM', leftHalfCenter, 38.2, { align: 'center' });
 
-  pdf.setFontSize(14);
+  pdf.setFontSize(16);
   pdf.text(String(data.fromJobId), leftHalfCenter, 43.6, { align: 'center' });
 
   // TO Section
   const rightHalfCenter = rangeMidX + (rangeX + rangeW - rangeMidX) / 2;
-  pdf.setFontSize(6.5);
-  pdf.text('TO', rightHalfCenter, 38.7, { align: 'center' });
+  pdf.setFontSize(8.0);
+  pdf.text('TO', rightHalfCenter, 38.2, { align: 'center' });
 
-  pdf.setFontSize(14);
+  pdf.setFontSize(16);
   pdf.text(String(data.toJobId), rightHalfCenter, 43.6, { align: 'center' });
 }
 

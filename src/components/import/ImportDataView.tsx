@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { FileSpreadsheet, Upload, CheckCircle2, FileCheck, Info, Clock } from 'lucide-react';
+import { FileSpreadsheet, Upload, CheckCircle2, FileCheck, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useArchive } from '../../context/ArchiveContext';
 import {
@@ -104,16 +104,16 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#3F4144] dark:text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FileSpreadsheet className="w-6 h-6 text-[#0B56A8] dark:text-blue-400" />
             <span>{language === 'ar' ? 'استيراد بيانات Excel' : 'Excel Import Engine'}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-neutral-400 mt-0.5">
             {language === 'ar'
-              ? 'محرك استيراد متخصص لشيت "بيانات المشاريع" — قراءة Job ID و Date Approved وحالة Archive.'
-              : 'Engine tuned for "بيانات المشاريع" sheet — strictly imports Job ID & Date Approved only.'}
+              ? 'رفع ومعاينة ملفات المشاريع وتوزيعها تلقائياً على البوكسات والدوسيهات.'
+              : 'Upload and preview project spreadsheets for automatic box and dossier assignment.'}
           </p>
         </div>
       </div>
@@ -135,20 +135,6 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
         </div>
       )}
 
-      {/* Specification Rules Card */}
-      <div className="p-3.5 bg-[#EAF2FB]/60 dark:bg-slate-800/60 border border-[#0B56A8]/15 dark:border-slate-700 rounded-xl text-xs space-y-1 text-slate-600 dark:text-slate-300">
-        <div className="font-bold text-[#0B56A8] dark:text-blue-400 flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 shrink-0" />
-          <span>{language === 'ar' ? 'قواعد مطابقة ملف NBE_Project_Volume_500M_V2.xlsx:' : 'Excel Parser Matching Specification:'}</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400">
-          <div>· {language === 'ar' ? 'الشيت المستهدف: "بيانات المشاريع" (الهيدر في الصف 9، والبيانات تبدأ من الصف 12).' : 'Target Sheet: "بيانات المشاريع" (Header at row 9, data starts at row 12).'}</div>
-          <div>· {language === 'ar' ? 'تجاهل صفوف الملخص 10 و 11 لأن Job ID فيها فارغ.' : 'Summary rows 10 & 11 skipped automatically.'}</div>
-          <div>· {language === 'ar' ? 'يتم قراءة Job ID و Date Approved وحالة Archive، مع تجاهل باقي الأعمدة.' : 'Reads Job ID, Date Approved and Archive status only.'}</div>
-          <div>· {language === 'ar' ? 'دعم تواريخ Excel الحقيقية وصيغ dd-mm-yyyy، وقراءة حالة الأرشيف.' : 'Excel date parsing and archive status mapping.'}</div>
-        </div>
-      </div>
-
       {/* Upload Zone */}
       {!parseResult && (
         <div
@@ -162,10 +148,10 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
             setDragActive(false);
             handleFiles(e.dataTransfer.files);
           }}
-          className={`p-10 border-2 border-dashed rounded-2xl text-center transition-all bg-white dark:bg-[#111827] ${
+          className={`p-10 border-2 border-dashed rounded-2xl text-center transition-all bg-white dark:bg-[#111111] ${
             dragActive
               ? 'border-[#0B56A8] bg-[#EAF2FB]/40 dark:bg-blue-950/20'
-              : 'border-slate-300 dark:border-slate-700 hover:border-[#0B56A8]/60'
+              : 'border-slate-300 dark:border-neutral-800 hover:border-[#0B56A8]/60'
           }`}
         >
           <input
@@ -176,15 +162,17 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
             className="hidden"
           />
 
-          <div className="w-12 h-12 mx-auto rounded-full bg-[#EAF2FB] dark:bg-slate-800 flex items-center justify-center text-[#0B56A8] dark:text-blue-400 mb-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#EAF2FB] dark:bg-neutral-900 flex items-center justify-center text-[#0B56A8] dark:text-blue-400 mb-3">
             <Upload className="w-6 h-6" />
           </div>
 
-          <h3 className="text-sm font-bold text-[#3F4144] dark:text-white mb-1">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
             {language === 'ar' ? 'اسحب ملف Excel هنا أو اضغط للاختيار' : 'Drag and drop Excel file here or click to browse'}
           </h3>
-          <p className="text-xs text-slate-500 mb-4">
-            {language === 'ar' ? 'يدعم .xlsx, .xls, .csv (حجم حتى 50MB)' : 'Supports .xlsx, .xls, .csv (up to 50MB)'}
+          <p className="text-xs text-slate-500 dark:text-neutral-400 mb-4">
+            {language === 'ar'
+              ? 'يدعم .xlsx و .xls و .csv — شيت "بيانات المشاريع" (حتى 50MB)'
+              : 'Supports .xlsx, .xls, .csv — "بيانات المشاريع" sheet (up to 50MB)'}
           </p>
 
           <button
@@ -200,13 +188,13 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
 
       {/* Preview Section before Import */}
       {parseResult && (
-        <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-neutral-800">
             <div>
               <div className="flex items-center gap-2">
                 <FileCheck className="w-5 h-5 text-[#0B56A8] dark:text-blue-400" />
-                <h2 className="text-base font-bold text-[#3F4144] dark:text-white">
-                  {language === 'ar' ? 'معاينة البيانات قبل الاعتماد (Import Preview)' : 'Pre-Import Data Preview'}
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  {language === 'ar' ? 'معاينة البيانات قبل الاعتماد' : 'Pre-Import Data Preview'}
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
@@ -221,7 +209,7 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                 <select
                   value={selectedSheet}
                   onChange={e => handleSheetChange(e.target.value)}
-                  className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-medium focus:outline-none focus:border-[#0B56A8]"
+                  className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg font-medium focus:outline-none focus:border-[#0B56A8]"
                 >
                   {parseResult.availableSheets.map(s => (
                     <option key={s} value={s}>
@@ -236,7 +224,7 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                 <select
                   value={targetBoxCode}
                   onChange={e => setTargetBoxCode(e.target.value)}
-                  className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-medium focus:outline-none focus:border-[#0B56A8]"
+                  className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg font-medium focus:outline-none focus:border-[#0B56A8]"
                 >
                   <option value="auto">{language === 'ar' ? 'تلقائي (حسب أرقام Job ID)' : 'Auto-match by ID'}</option>
                   {boxes.map(b => (
@@ -251,7 +239,7 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
 
           {/* Verification KPI Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
               <span className="text-[10px] text-slate-400 block">{language === 'ar' ? 'إجمالي الصفوف المفحوصة' : 'Scanned Rows'}</span>
               <span className="text-lg font-bold text-[#3F4144] dark:text-white tabular-nums">
                 {parseResult.totalRowsRead}
@@ -281,10 +269,10 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
           </div>
 
           {/* Preview Table */}
-          <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+          <div className="border border-slate-200 dark:border-neutral-800 rounded-lg overflow-hidden">
             <div className="max-h-64 overflow-y-auto">
               <table className="w-full text-xs text-start">
-                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase text-[10px] font-semibold sticky top-0">
+                <thead className="bg-slate-50 dark:bg-neutral-900 text-slate-500 text-[11px] font-semibold sticky top-0 border-b border-slate-200 dark:border-neutral-800">
                   <tr>
                     <th className="px-3 py-2 w-12">Row</th>
                     <th className="px-3 py-2">Job ID (Extracted)</th>
@@ -294,19 +282,19 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                     <th className="px-3 py-2">Notes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
                   {parseResult.previewRows.slice(0, 30).map((r, i) => (
-                    <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                    <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-neutral-900/40">
                       <td className="px-3 py-1.5 text-slate-400 text-[11px] tabular-nums">
                         {r.rowIndex}
                       </td>
                       <td className="px-3 py-1.5 font-bold text-[#3F4144] dark:text-white tabular-nums">
                         {r.jobId || r.rawJobId || '—'}
                       </td>
-                      <td className="px-3 py-1.5 text-slate-600 dark:text-slate-300">
+                      <td className="px-3 py-1.5 text-slate-600 dark:text-neutral-300">
                         {r.dateApproved || '—'}
                       </td>
-                      <td className="px-3 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">{r.archiveStatus || '—'}</td>
+                      <td className="px-3 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-neutral-300">{r.archiveStatus || '—'}</td>
                       <td className="px-3 py-1.5">
                         <span
                           className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
@@ -338,7 +326,7 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                 setParseResult(null);
                 setCurrentWorkbook(null);
               }}
-              className="px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              className="px-3 py-2 text-xs font-semibold text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white"
             >
               {language === 'ar' ? 'إلغاء المعاينة' : 'Cancel Preview'}
             </button>
@@ -360,15 +348,15 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
       )}
 
       {/* Upload History Table */}
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
-        <h2 className="text-sm font-bold text-[#3F4144] dark:text-white flex items-center gap-2">
+      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl p-5 space-y-3">
+        <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Clock className="w-4 h-4 text-[#0B56A8] dark:text-blue-400" />
-          <span>{language === 'ar' ? 'سجل عمليات الرفع السابقة (Upload History)' : 'Upload History Log'}</span>
+          <span>{language === 'ar' ? 'سجل عمليات الرفع السابقة' : 'Upload History Log'}</span>
         </h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-start">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase text-[10px] font-semibold border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-neutral-900 text-slate-500 text-[11px] font-semibold border-b border-slate-200 dark:border-neutral-800">
               <tr>
                 <th className="px-3 py-2">{language === 'ar' ? 'اسم الملف' : 'File Name'}</th>
                 <th className="px-3 py-2">{language === 'ar' ? 'المستخدم' : 'User'}</th>
@@ -379,13 +367,13 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                 <th className="px-3 py-2">{language === 'ar' ? 'النتيجة' : 'Result'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
               {uploadHistory.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                  <td className="px-3 py-2.5 font-bold text-[#3F4144] dark:text-white">
+                <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-neutral-900/40">
+                  <td className="px-3 py-2.5 font-bold text-slate-900 dark:text-white">
                     {u.fileName}
                   </td>
-                  <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300">{u.userName}</td>
+                  <td className="px-3 py-2.5 text-slate-600 dark:text-neutral-300">{u.userName}</td>
                   <td className="px-3 py-2.5 text-slate-400 text-[11px] tabular-nums">{u.timestamp}</td>
                   <td className="px-3 py-2.5 text-end tabular-nums">{u.totalRows}</td>
                   <td className="px-3 py-2.5 text-end font-bold text-emerald-600 tabular-nums">
@@ -407,6 +395,13 @@ export const ImportDataView: React.FC<ImportDataViewProps> = ({ onNavigate }) =>
                   </td>
                 </tr>
               ))}
+              {uploadHistory.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                    {language === 'ar' ? 'لم يتم رفع ملفات بعد' : 'No uploads yet'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

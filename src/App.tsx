@@ -18,7 +18,7 @@ import { LabelsView } from './components/labels/LabelsView';
 import { ReportsView } from './components/reports/ReportsView';
 import { AuditLogView } from './components/audit/AuditLogView';
 import { NotificationsDrawer } from './components/notifications/NotificationsDrawer';
-import { UsersManagementModal } from './components/users/UsersManagementModal';
+import { UsersManagementView } from './components/users/UsersManagementView';
 import { ProfileModal } from './components/profile/ProfileModal';
 import { LoginView } from './components/auth/LoginView';
 import { IntercomLogo } from './components/common/IntercomLogo';
@@ -44,12 +44,12 @@ function MainApp() {
   const [openBoxCreateModal, setOpenBoxCreateModal] = useState(false);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [usersManagementOpen, setUsersManagementOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<'profile' | 'password'>('profile');
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0B111A] flex flex-col items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+      <div className="min-h-screen bg-slate-50 dark:bg-black flex flex-col items-center justify-center gap-4 text-sm text-slate-500 dark:text-neutral-400">
         <IntercomLogo size="lg" />
         <div className="flex items-center gap-2 text-xs font-medium">
           <span className="w-2 h-2 rounded-full bg-[#0B56A8] animate-ping" />
@@ -134,6 +134,11 @@ function MainApp() {
           { label: isAr ? 'الرئيسية' : 'Dashboard', tab: 'dashboard' as ActiveTab },
           { label: isAr ? 'سجل العمليات' : 'Audit Log' },
         ];
+      case 'users':
+        return [
+          { label: isAr ? 'الرئيسية' : 'Dashboard', tab: 'dashboard' as ActiveTab },
+          { label: isAr ? 'المستخدمين والصلاحيات' : 'Users & Permissions' },
+        ];
       default:
         return [];
     }
@@ -142,14 +147,16 @@ function MainApp() {
   return (
     <div
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      className="min-h-screen bg-slate-50 dark:bg-[#0B111A] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors"
+      className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-neutral-100 flex flex-col font-sans transition-colors"
     >
       <TopNav
         activeTab={activeTab}
         onNavigate={handleNavigate}
         onOpenNotifications={() => setNotificationsOpen(true)}
-        onOpenUsersManagement={() => setUsersManagementOpen(true)}
-        onOpenProfile={() => setProfileOpen(true)}
+        onOpenProfile={(tab = 'profile') => {
+          setProfileInitialTab(tab);
+          setProfileOpen(true);
+        }}
         breadcrumbs={getBreadcrumbs()}
       />
 
@@ -224,20 +231,15 @@ function MainApp() {
         {activeTab === 'reports' && <ReportsView />}
 
         {activeTab === 'audit' && <AuditLogView />}
+
+        {activeTab === 'users' && <UsersManagementView onNavigate={handleNavigate} />}
       </main>
 
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#0B56A8] dark:text-blue-400">ARMS</span>
-            <span>·</span>
-            <span>Archive Reports Management System</span>
-            <span>·</span>
-            <span>Intercom Standard</span>
-          </div>
-          <div className="text-[11px] tabular-nums">
-            1 Box = 6 Dossiers · 1 Dossier = 50 Projects · 300 Slots
-          </div>
+      <footer className="border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#111111] py-4 text-xs text-slate-500 dark:text-neutral-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-0.5">
+          <div className="font-bold text-slate-700 dark:text-neutral-200">ARMS 2026 ©</div>
+          <div>Product Design &amp; Development by</div>
+          <div className="font-bold text-[#0B56A8] dark:text-blue-400">Mohamed H. Daif</div>
         </div>
       </footer>
 
@@ -255,7 +257,7 @@ function MainApp() {
                   ? 'bg-amber-50 border-amber-200 text-[#B45309] dark:bg-amber-950/90 dark:border-amber-900 dark:text-amber-200'
                   : toast.type === 'success'
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/90 dark:border-emerald-900 dark:text-emerald-200'
-                  : 'bg-white border-slate-200 text-[#0B56A8] dark:bg-slate-900 dark:border-slate-700 dark:text-blue-300'
+                  : 'bg-white border-slate-200 text-[#0B56A8] dark:bg-[#111111] dark:border-neutral-800 dark:text-blue-300'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -282,9 +284,11 @@ function MainApp() {
         onNavigate={handleNavigate}
       />
 
-      <UsersManagementModal isOpen={usersManagementOpen} onClose={() => setUsersManagementOpen(false)} />
-
-      <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileModal
+        isOpen={profileOpen}
+        initialTab={profileInitialTab}
+        onClose={() => setProfileOpen(false)}
+      />
     </div>
   );
 }

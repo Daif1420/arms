@@ -3,19 +3,20 @@
  * Handles My Profile view, password change with show/hide password, and session metadata.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, X, Eye, EyeOff, Check } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 
 interface ProfileModalProps {
   isOpen: boolean;
+  initialTab?: 'profile' | 'password';
   onClose: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, initialTab = 'profile', onClose }) => {
   const { currentUser, language, changePassword, showToast } = useArchive();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password'>(initialTab);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,6 +24,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const [saving, setSaving] = useState(false);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+      setErrorNotice(null);
+      setSuccessNotice(null);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -59,26 +68,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-[#0B56A8] dark:text-blue-400" />
-            <h2 className="text-base font-bold text-[#3F4144] dark:text-white">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {language === 'ar' ? 'الملف الشخصي والحساب' : 'Account & Security'}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-[#3F4144] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-[#3F4144] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab switcher */}
-        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-neutral-900 rounded-lg text-xs font-semibold">
           <button
             type="button"
             onClick={() => {
@@ -87,8 +96,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             }}
             className={`py-1.5 rounded-md transition-colors ${
               activeTab === 'profile'
-                ? 'bg-white dark:bg-slate-900 text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#111111] text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
+                : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             {language === 'ar' ? 'بيانات الحساب' : 'Profile'}
@@ -101,8 +110,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             }}
             className={`py-1.5 rounded-md transition-colors ${
               activeTab === 'password'
-                ? 'bg-white dark:bg-slate-900 text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-[#111111] text-[#0B56A8] dark:text-blue-400 shadow-xs font-bold'
+                : 'text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             {language === 'ar' ? 'تغيير كلمة المرور' : 'Change Password'}
@@ -125,7 +134,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         {/* Tab 1: Profile View */}
         {activeTab === 'profile' && (
           <div className="space-y-3 text-xs">
-            <div className="p-4 bg-[#EAF2FB]/70 dark:bg-slate-800/60 border border-[#0B56A8]/15 dark:border-slate-700 rounded-xl flex items-center gap-3">
+            <div className="p-4 bg-[#EAF2FB]/70 dark:bg-neutral-900/60 border border-[#0B56A8]/15 dark:border-neutral-800 rounded-xl flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[#0B56A8] text-white flex items-center justify-center text-lg font-bold shrink-0">
                 {currentUser.name.charAt(0)}
               </div>
@@ -133,7 +142,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <div className="text-sm font-bold text-[#3F4144] dark:text-white truncate">
                   {currentUser.name}
                 </div>
-                <div className="text-slate-500 dark:text-slate-400 text-[11px] truncate">{currentUser.email}</div>
+                <div className="text-slate-500 dark:text-neutral-400 text-[11px] truncate">{currentUser.email}</div>
                 <div className="mt-1 inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#0B56A8]/10 text-[#0B56A8] dark:bg-blue-900/40 dark:text-blue-300">
                   {currentUser.role}
                 </div>
@@ -141,26 +150,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">{language === 'ar' ? 'اسم المستخدم:' : 'Username:'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-neutral-800">
+                <span className="text-slate-500 dark:text-neutral-400">{language === 'ar' ? 'اسم المستخدم:' : 'Username:'}</span>
                 <span className="font-bold text-[#3F4144] dark:text-white" dir="ltr">
                   @{currentUser.username}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">{language === 'ar' ? 'الصلاحية في النظام:' : 'System Permission:'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-neutral-800">
+                <span className="text-slate-500 dark:text-neutral-400">{language === 'ar' ? 'الصلاحية في النظام:' : 'System Permission:'}</span>
                 <span className="font-semibold text-[#3F4144] dark:text-white">
                   {currentUser.role}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500 dark:text-slate-400">{language === 'ar' ? 'آخر نشاط / تسجيل دخول:' : 'Last Login:'}</span>
-                <span className="text-slate-600 dark:text-slate-400 tabular-nums" dir="ltr">
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-neutral-800">
+                <span className="text-slate-500 dark:text-neutral-400">{language === 'ar' ? 'آخر نشاط / تسجيل دخول:' : 'Last Login:'}</span>
+                <span className="text-slate-600 dark:text-neutral-400 tabular-nums" dir="ltr">
                   {currentUser.lastLogin}
                 </span>
               </div>
               <div className="flex justify-between py-1.5">
-                <span className="text-slate-500 dark:text-slate-400">{language === 'ar' ? 'حالة الحساب:' : 'Account Status:'}</span>
+                <span className="text-slate-500 dark:text-neutral-400">{language === 'ar' ? 'حالة الحساب:' : 'Account Status:'}</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                   {currentUser.active ? (language === 'ar' ? 'نشط ومفعل' : 'Active & Verified') : (language === 'ar' ? 'معطل' : 'Inactive')}
                 </span>
@@ -173,7 +182,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         {activeTab === 'password' && (
           <form onSubmit={handleChangePassword} className="space-y-3 text-xs">
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+              <label className="block text-slate-700 dark:text-neutral-300 font-semibold mb-1">
                 {language === 'ar' ? 'كلمة المرور الحالية' : 'Current Password'}
               </label>
               <div className="relative">
@@ -182,7 +191,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   required
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pe-9 focus:outline-none focus:border-[#0B56A8]"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg pe-9 focus:outline-none focus:border-[#0B56A8]"
                 />
                 <button
                   type="button"
@@ -196,7 +205,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             </div>
 
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+              <label className="block text-slate-700 dark:text-neutral-300 font-semibold mb-1">
                 {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
               </label>
               <input
@@ -207,12 +216,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder={language === 'ar' ? 'أي أرقام أو أحرف (مثال: 1234)' : 'Any numbers or characters'}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-[#0B56A8]"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:border-[#0B56A8]"
               />
             </div>
 
             <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+              <label className="block text-slate-700 dark:text-neutral-300 font-semibold mb-1">
                 {language === 'ar' ? 'تأكيد كلمة المرور الجديدة' : 'Confirm New Password'}
               </label>
               <input
@@ -222,7 +231,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 maxLength={256}
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-[#0B56A8]"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:border-[#0B56A8]"
               />
             </div>
 
@@ -230,7 +239,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg"
+                className="px-3 py-1.5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white rounded-lg"
               >
                 {language === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>

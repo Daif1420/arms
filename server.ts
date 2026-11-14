@@ -519,15 +519,51 @@ async function startServer() {
           return res.status(201).json({ user: safeUser(created) });
         }
         if (req.method === 'PATCH') {
-          const { id, role, active } = req.body || {};
+          const { id, name, email, role, active, password, resetPassword } = req.body || {};
           const target = db.users.find(u => u.id === id);
           if (!target) return res.status(404).json({ error: 'User not found.' });
           if (id === session.sub && active === false) return res.status(400).json({ error: 'You cannot deactivate your own account.' });
           if (id === session.sub && role && role !== 'System Admin') return res.status(400).json({ error: 'You cannot lower your own administrator role.' });
-          if (role !== undefined && ['System Admin', 'Archive Manager', 'Data Entry', 'Viewer'].includes(role)) target.role = role;
-          if (active !== undefined && typeof active === 'boolean') target.active = active;
+          if (name !== undefined) {
+            const trimmedName = String(name).trim();
+            if (!trimmedName || trimmedName.length > 120) {
+              return res.status(400).json({ error: 'الاسم الكامل غير صالح.' });
+            }
+            target.name = trimmedName;
+          }
+          if (email !== undefined) {
+            target.email = String(email).trim().slice(0, 160);
+          }
+          if (role !== undefined) {
+            if (!['System Admin', 'Archive Manager', 'Data Entry', 'Viewer'].includes(role)) {
+              return res.status(400).json({ error: 'الصلاحية المختارة غير صالحة.' });
+            }
+            target.role = role;
+          }
+          if (active !== undefined) {
+            if (typeof active !== 'boolean') return res.status(400).json({ error: 'Invalid user status.' });
+            target.active = active;
+          }
+          if (resetPassword === true) {
+            target.password_hash = await hashPassword('P@ssw0rd');
+          } else if (password !== undefined) {
+            if (typeof password !== 'string' || password.length < 1 || password.length > 256) {
+              return res.status(400).json({ error: 'يرجى إدخال كلمة مرور صالحة.' });
+            }
+            target.password_hash = await hashPassword(password);
+          }
           saveLocalDb(db);
           return res.json({ user: safeUser(target) });
+        }
+        if (req.method === 'DELETE') {
+          const id = String(req.body?.id || req.query?.id || '').trim();
+          if (!id) return res.status(400).json({ error: 'Invalid user ID.' });
+          if (id === session.sub) return res.status(400).json({ error: 'لا يمكنك حذف حسابك الحالي أثناء تسجيل الدخول.' });
+          const idx = db.users.findIndex(u => u.id === id);
+          if (idx === -1) return res.status(404).json({ error: 'User not found.' });
+          db.users.splice(idx, 1);
+          saveLocalDb(db);
+          return res.json({ ok: true, deletedId: id });
         }
         return res.status(405).json({ error: 'Method not allowed.' });
       }
@@ -553,13 +589,53 @@ async function startServer() {
         return res.status(201).json({ user: safeUser(rows[0]) });
       }
       if (req.method === 'PATCH') {
-        const { id, role, active } = req.body || {};
+        const { id, name, email, role, active, password, resetPassword } = req.body || {};
         if (!id) return res.status(400).json({ error: 'Invalid user update.' });
         if (id === session.sub && active === false) return res.status(400).json({ error: 'You cannot deactivate your own account.' });
         if (id === session.sub && role && role !== 'System Admin') return res.status(400).json({ error: 'You cannot lower your own administrator role.' });
-        const rows = await sql`UPDATE arms_users SET role = COALESCE(${role ?? null}, role), active = COALESCE(${active ?? null}, active), updated_at = NOW() WHERE id = ${id} RETURNING id, username, email, name, role, active, last_login`;
+        if (role !== undefined && !['System Admin', 'Archive Manager', 'Data Entry', 'Viewer'].includes(role)) {
+          return res.status(400).json({ error: 'الصلاحية المختارة غير صالحة.' });
+        }
+        if (active !== undefined && typeof active !== 'boolean') {
+          return res.status(400).json({ error: 'Invalid user status.' });
+        }
+        let nextName: string | null = null;
+        if (name !== undefined) {
+          const trimmedName = String(name).trim();
+          if (!trimmedName || trimmedName.length > 120) {
+            return res.status(400).json({ error: 'الاسم الكامل غير صالح.' });
+          }
+          nextName = trimmedName;
+        }
+        const nextEmail: string | null = email !== undefined ? String(email).trim().slice(0, 160) : null;
+        let nextPasswordHash: string | null = null;
+        if (resetPassword === true) {
+          nextPasswordHash = await hashPassword('P@ssw0rd');
+        } else if (password !== undefined) {
+          if (typeof password !== 'string' || password.length < 1 || password.length > 256) {
+            return res.status(400).json({ error: 'يرجى إدخال كلمة مرور صالحة.' });
+          }
+          nextPasswordHash = await hashPassword(password);
+        }
+        const rows = await sql`UPDATE arms_users
+          SET name = COALESCE(${nextName}, name),
+              email = COALESCE(${nextEmail}, email),
+              role = COALESCE(${role ?? null}, role),
+              active = COALESCE(${active ?? null}, active),
+              password_hash = COALESCE(${nextPasswordHash}, password_hash),
+              updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING id, username, email, name, role, active, last_login`;
         if (!rows.length) return res.status(404).json({ error: 'User not found.' });
         return res.json({ user: safeUser(rows[0]) });
+      }
+      if (req.method === 'DELETE') {
+        const id = String(req.body?.id || req.query?.id || '').trim();
+        if (!id) return res.status(400).json({ error: 'Invalid user ID.' });
+        if (id === session.sub) return res.status(400).json({ error: 'لا يمكنك حذف حسابك الحالي أثناء تسجيل الدخول.' });
+        const rows = await sql`DELETE FROM arms_users WHERE id = ${id} RETURNING id`;
+        if (!rows.length) return res.status(404).json({ error: 'User not found.' });
+        return res.json({ ok: true, deletedId: id });
       }
       return res.status(405).json({ error: 'Method not allowed.' });
     } catch (error: any) {

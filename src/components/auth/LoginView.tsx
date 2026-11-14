@@ -4,7 +4,6 @@ import {
   Eye,
   EyeOff,
   FileBarChart,
-  FolderArchive,
   Globe,
   KeyRound,
   LockKeyhole,
@@ -18,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { IntercomLogo } from '../common/IntercomLogo';
-import archiveReportsHero from '../../assets/images/archive_reports_hero_1794602023269.jpg';
+import archiveReportsHero from '../../assets/images/archive_vault_boxes_1794678224311.jpg';
 
 const THEME_KEY = 'arms_theme';
 const readTheme = () => {
@@ -86,10 +85,10 @@ export const LoginView: React.FC = () => {
     : t('تسجيل الدخول', 'Sign In');
 
   const inputBase =
-    'w-full h-12 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900 text-slate-900 dark:text-white text-sm outline-none transition-colors focus:border-[#0B56A8] focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-[#0B56A8]/20';
+    'w-full h-12 rounded-xl border border-slate-200 dark:border-neutral-800 bg-slate-100/70 dark:bg-[#111111] text-slate-900 dark:text-white text-sm outline-none transition-colors focus:border-[#0B56A8] focus:bg-white dark:focus:bg-black focus:ring-2 focus:ring-[#0B56A8]/20';
 
   return (
-    <main dir={ar ? 'rtl' : 'ltr'} className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-slate-950 transition-colors">
+    <main dir={ar ? 'rtl' : 'ltr'} className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white dark:bg-black transition-colors">
       {/* Right Column in RTL (Form Panel) */}
       <section className="relative flex flex-col justify-between px-6 py-6 sm:px-12 lg:px-16">
         {/* Top utility controls */}
@@ -98,7 +97,7 @@ export const LoginView: React.FC = () => {
             type="button"
             onClick={() => setDarkMode(v => !v)}
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-[#0B56A8] hover:text-[#0B56A8] flex items-center justify-center transition-colors shadow-2xs"
+            className="w-10 h-10 rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#111111] text-slate-600 dark:text-neutral-300 hover:border-[#0B56A8] hover:text-[#0B56A8] flex items-center justify-center transition-colors shadow-2xs"
           >
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
@@ -106,7 +105,7 @@ export const LoginView: React.FC = () => {
           <button
             type="button"
             onClick={() => setLanguage(ar ? 'en' : 'ar')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0B56A8] hover:text-[#0B56A8] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-neutral-800 text-xs font-semibold text-slate-600 dark:text-neutral-300 hover:border-[#0B56A8] hover:text-[#0B56A8] transition-colors"
           >
             <Globe className="w-3.5 h-3.5" />
             <span>{ar ? 'EN' : 'عربي'}</span>
@@ -120,7 +119,7 @@ export const LoginView: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {setupRequired ? t('إعداد حساب مدير النظام', 'Create System Administrator') : t('أهلاً بعودتك', 'Welcome Back')}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-neutral-400 mt-2 max-w-sm leading-relaxed">
               {setupRequired
                 ? t(
                     'أنشئ أول حساب مسؤول لتشغيل نظام الأرشيف.',
@@ -137,7 +136,7 @@ export const LoginView: React.FC = () => {
             {setupRequired && (
               <>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1.5">
                     {t('مفتاح الإعداد الأولي', 'Initial Setup Key')}
                   </label>
                   <div className="relative">
@@ -153,7 +152,7 @@ export const LoginView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1.5">
                     {t('الاسم بالكامل', 'Full Name')}
                   </label>
                   <input
@@ -165,7 +164,7 @@ export const LoginView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1.5">
                     {t('البريد الإلكتروني (اختياري)', 'Email (optional)')}
                   </label>
                   <input
@@ -179,7 +178,7 @@ export const LoginView: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1.5">
                 {t('معرّف المستخدم', 'User ID')}
               </label>
               <div className="relative">
@@ -198,7 +197,7 @@ export const LoginView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-neutral-300 mb-1.5">
                 {t('كلمة المرور', 'Password')}
               </label>
               <div className="relative">
@@ -264,7 +263,7 @@ export const LoginView: React.FC = () => {
             </button>
           </form>
 
-          <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="mt-5 text-center text-xs text-slate-500 dark:text-neutral-400 leading-relaxed">
             {t('بتسجيل الدخول، أنت توافق على ', 'By signing in, you agree to our ')}
             <button
               type="button"
@@ -286,35 +285,33 @@ export const LoginView: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <footer className="text-center text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 pt-4">
-          <div className="font-bold text-slate-700 dark:text-slate-300">ARMS · Intercom 2026 ©</div>
-          <div>
-            Archive Reports Management System{' '}
-            <span className="font-bold text-[#0B56A8] dark:text-blue-400">Intercom Standard</span>
-          </div>
+        <footer className="text-center text-xs text-slate-500 dark:text-neutral-400 space-y-0.5 pt-4">
+          <div className="font-bold text-slate-700 dark:text-neutral-200">ARMS 2026 ©</div>
+          <div>Product Design &amp; Development by</div>
+          <div className="font-bold text-[#0B56A8] dark:text-blue-400">Mohamed H. Daif</div>
         </footer>
       </section>
 
       {/* Left Column in RTL (Architectural Visual Showcase Panel) */}
-      <aside className="relative hidden lg:flex items-center justify-center p-10 overflow-hidden bg-[#0B1F3B]">
+      <aside className="relative hidden lg:flex items-start justify-center px-10 pt-10 pb-12 overflow-hidden bg-[#0B1F3B] dark:bg-black">
         {!heroError ? (
           <img
             src={HERO_IMAGE_SRC}
-            alt="Archive Reports and Records Facility"
+            alt="Archive Boxes with ARMS Thermal Labels"
             referrerPolicy="no-referrer"
             onError={() => setHeroError(true)}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-bottom"
           />
         ) : null}
 
         {/* Measured contrast scrim */}
         <div
-          className="absolute inset-0 bg-gradient-to-t from-[#08162B]/85 via-[#0B56A8]/40 to-[#08162B]/65"
+          className="absolute inset-0 bg-gradient-to-b from-[#08162B]/75 via-[#0B56A8]/20 to-black/35 dark:from-black/80 dark:via-black/30 dark:to-black/50"
           aria-hidden="true"
         />
 
         {/* Frosted Feature Showcase Card */}
-        <div className="relative z-10 w-full max-w-md rounded-2xl bg-white/92 dark:bg-slate-900/92 backdrop-blur-md border border-white/70 dark:border-slate-700/70 p-8 shadow-2xl">
+        <div className="relative z-10 w-full max-w-md rounded-2xl bg-white/90 dark:bg-[#111111]/90 backdrop-blur-md border border-white/70 dark:border-neutral-800/70 p-7 shadow-2xl">
           <div className="text-xs font-bold text-[#0B56A8] dark:text-blue-400">
             {t('منصة إدارة الأرشيف · ARMS', 'Archive Operations Platform · ARMS')}
           </div>
@@ -323,25 +320,25 @@ export const LoginView: React.FC = () => {
             {t('كل بيانات الأرشيف في مكان واحد', 'All Archive Operations in One Place')}
           </h2>
 
-          <p className="mt-2.5 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p className="mt-2.5 text-sm text-slate-600 dark:text-neutral-300 leading-relaxed">
             {t(
               'تابع حالة البوكسات والدوسيهات، استورد ملفات المشاريع، واطبع الليبلات الحرارية وتقارير التدقيق بسهولة من خلال لوحة واحدة.',
               'Track archive boxes and dossiers, import project batches, print thermal labels, and monitor audit reports from one unified console.'
             )}
           </p>
 
-          <hr className="my-6 border-slate-200/90 dark:border-slate-700/80" />
+          <hr className="my-6 border-slate-200/90 dark:border-neutral-800/80" />
 
           <div className="space-y-4">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-[#EAF2FB] dark:bg-[#0B56A8]/25 text-[#0B56A8] dark:text-blue-400 flex items-center justify-center shrink-0">
-                <FolderArchive className="w-5 h-5" />
+                <Archive className="w-5 h-5" />
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 dark:text-white">
                   {t('البوكسات والدوسيهات', 'Boxes & Dossiers')}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-slate-500 dark:text-neutral-400">
                   {t('تتبع دقيق 300 مشروع لكل بوكس', 'Strict 300-slot box & 50-slot dossier tracking')}
                 </div>
               </div>
@@ -355,7 +352,7 @@ export const LoginView: React.FC = () => {
                 <div className="text-sm font-bold text-slate-900 dark:text-white">
                   {t('اكتشاف الفجوات والتقارير', 'Gap Detection & Reports')}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-slate-500 dark:text-neutral-400">
                   {t('تحليل فوري للنواقص وسجل الاعتمادات', 'Automated sequence gap detection & 13 reports')}
                 </div>
               </div>
@@ -369,7 +366,7 @@ export const LoginView: React.FC = () => {
                 <div className="text-sm font-bold text-slate-900 dark:text-white">
                   {t('طباعة الليبلات الحرارية', 'Thermal Label Printing')}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-slate-500 dark:text-neutral-400">
                   {t('مطابقة قياسية 100×50 مم مع رمز QR', 'Standard 100×50 mm PDF labels with QR codes')}
                 </div>
               </div>
@@ -381,8 +378,8 @@ export const LoginView: React.FC = () => {
       {/* Terms / Privacy Modal */}
       {legalModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-neutral-800">
               <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white text-sm">
                 <Archive className="w-4 h-4 text-[#0B56A8]" />
                 <span>
@@ -399,7 +396,7 @@ export const LoginView: React.FC = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-neutral-300 leading-relaxed">
               {legalModal === 'terms'
                 ? t(
                     'هذا النظام مخصص لعمليات الأرشفة المعتمدة داخل شركة Intercom. يتم تسجيل كافة عمليات الاستيراد وتعديل الحالات والإغلاق الإداري تلقائياً في سجل التدقيق (Audit Log).',

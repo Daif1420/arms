@@ -27,12 +27,12 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
-      <div className="w-full max-w-md bg-white dark:bg-[#111827] border-s border-slate-200 dark:border-slate-800 shadow-2xl h-full flex flex-col">
+      <div className="w-full max-w-md bg-white dark:bg-[#111111] border-s border-slate-200 dark:border-neutral-800 shadow-2xl h-full flex flex-col">
         {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 dark:border-neutral-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-[#0B56A8] dark:text-blue-400" />
-            <h2 className="text-base font-bold text-[#3F4144] dark:text-white">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {language === 'ar' ? 'مركز الإشعارات والتنبيهات' : 'Notifications & Alerts'}
             </h2>
           </div>
@@ -48,7 +48,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-[#3F4144] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-[#3F4144] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -68,8 +68,8 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                 }}
                 className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
                   item.isRead
-                    ? 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                    : 'bg-white dark:bg-slate-800 border-[#0B56A8]/25 dark:border-slate-700 shadow-xs hover:border-[#0B56A8]/50'
+                    ? 'bg-slate-50/70 dark:bg-neutral-900/40 border-slate-100 dark:border-neutral-800 text-slate-600 dark:text-neutral-400'
+                    : 'bg-white dark:bg-neutral-900 border-[#0B56A8]/25 dark:border-neutral-800 shadow-xs hover:border-[#0B56A8]/50'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -80,7 +80,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                     {item.type === 'duplicate' && <FileSpreadsheet className="w-4 h-4 text-[#F5A614] shrink-0" />}
                     <span
                       className={`text-xs font-bold ${
-                        item.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-[#3F4144] dark:text-white'
+                        item.isRead ? 'text-slate-700 dark:text-neutral-300' : 'text-[#3F4144] dark:text-white'
                       }`}
                     >
                       {item.title}
@@ -92,7 +92,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                   )}
                 </div>
 
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p className="mt-1 text-xs text-slate-500 dark:text-neutral-400 leading-relaxed">
                   {item.message}
                 </p>
 

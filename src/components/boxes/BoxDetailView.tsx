@@ -20,7 +20,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
   const box = boxes.find(b => b.id === boxId || b.boxCode === boxId);
   if (!box) {
     return (
-      <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="p-8 text-center bg-white dark:bg-[#111111] rounded-xl border border-slate-200 dark:border-neutral-800">
         <p className="text-sm text-slate-500">{language === 'ar' ? 'البوكس غير موجود.' : 'Box not found.'}</p>
         <button onClick={() => onNavigate('boxes')} className="mt-3 text-xs font-semibold text-[#0B56A8] underline">
           {language === 'ar' ? 'العودة للبوكسات' : 'Back to Boxes'}
@@ -37,13 +37,13 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate('boxes')}
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] hover:text-[#0B56A8] transition-colors text-slate-600 dark:text-slate-300"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-neutral-800 hover:border-[#0B56A8] hover:text-[#0B56A8] dark:hover:text-blue-400 transition-colors text-slate-600 dark:text-neutral-300"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           </button>
           <div>
             <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
               {language === 'ar'
                 ? `نطاق البوكس: من #${box.firstJobId} إلى #${box.lastJobId} (إجمالي 300 مشروع)`
                 : `Job ID Range: #${box.firstJobId} → #${box.lastJobId} (Strict 300 Project Slots)`}
@@ -89,7 +89,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-[#111111] p-4 rounded-xl border border-slate-200 dark:border-neutral-800">
         <div>
           <span className="text-[11px] text-slate-500">{language === 'ar' ? 'المشاريع المؤرشفة' : 'Archived Projects'}</span>
           <div className="text-xl font-bold text-[#0B56A8] dark:text-blue-400 tabular-nums">{box.archivedProjects} / 300</div>
@@ -104,7 +104,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
 
         <div>
           <span className="text-[11px] text-slate-500">{language === 'ar' ? 'مشاريع قيد الانتظار' : 'Pending Projects'}</span>
-          <div className="text-xl font-bold text-slate-700 dark:text-slate-300 tabular-nums">{box.pendingProjects}</div>
+          <div className="text-xl font-bold text-slate-700 dark:text-neutral-300 tabular-nums">{box.pendingProjects}</div>
           <span className="text-[10px] text-slate-400">{language === 'ar' ? 'لم تستورد بعد' : 'Awaiting delivery'}</span>
         </div>
 
@@ -130,7 +130,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
                   onSelectDossier(dossier.id);
                   onNavigate('dossier-detail', dossier.id);
                 }}
-                className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-[#0B56A8]/60 hover:shadow-xs cursor-pointer transition-all flex flex-col justify-between group"
+                className="p-4 bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl hover:border-[#0B56A8]/60 hover:shadow-xs cursor-pointer transition-all flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -161,7 +161,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-neutral-800 text-center">
                     <div>
                       <div className="text-[10px] text-slate-400">{language === 'ar' ? 'مؤرشف' : 'Archived'}</div>
                       <div className="text-xs font-bold text-[#0B56A8] dark:text-blue-400 tabular-nums">
@@ -181,7 +181,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
                   </div>
 
                   <div className="mt-3">
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden flex">
+                    <div className="w-full bg-slate-100 dark:bg-neutral-900 rounded-full h-1.5 overflow-hidden flex">
                       <div className="bg-[#0B56A8] h-full" style={{ width: `${(dossier.archivedCount / 50) * 100}%` }} />
                       <div className="bg-[#E52225] h-full" style={{ width: `${(dossier.missingCount / 50) * 100}%` }} />
                     </div>
@@ -192,7 +192,7 @@ export const BoxDetailView: React.FC<BoxDetailViewProps> = ({ boxId, onNavigate,
                   <span className="text-[11px] font-semibold">{dPercent}% {language === 'ar' ? 'مكتمل' : 'complete'}</span>
                   <div className="flex items-center gap-1 text-[11px] font-medium">
                     <span>{language === 'ar' ? 'استعراض الـ 50 مشروع' : 'View 50 slots'}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                   </div>
                 </div>
               </div>

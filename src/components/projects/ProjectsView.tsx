@@ -31,17 +31,21 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
 
-  const filteredProjects = projects.filter(p => {
-    const matchSearch =
-      String(p.jobId).includes(searchTerm) ||
-      (p.dateApproved && p.dateApproved.includes(searchTerm)) ||
-      p.boxId.toLowerCase().includes(searchTerm.toLowerCase());
+  const sortedBoxes = [...boxes].sort((a, b) => a.firstJobId - b.firstJobId);
 
-    if (!matchSearch) return false;
-    if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-    if (boxFilter !== 'all' && p.boxId !== boxFilter) return false;
-    return true;
-  });
+  const filteredProjects = projects
+    .filter(p => {
+      const matchSearch =
+        String(p.jobId).includes(searchTerm) ||
+        (p.dateApproved && p.dateApproved.includes(searchTerm)) ||
+        p.boxId.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchSearch) return false;
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+      if (boxFilter !== 'all' && p.boxId !== boxFilter) return false;
+      return true;
+    })
+    .sort((a, b) => a.jobId - b.jobId);
 
   const totalPages = Math.ceil(filteredProjects.length / pageSize) || 1;
   const paginatedProjects = filteredProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -59,16 +63,16 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-[#0B56A8]" />
             <span>{language === 'ar' ? 'سجل المشاريع (Projects)' : 'Projects Directory'}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-neutral-400 mt-0.5">
             {language === 'ar'
-              ? 'الأعمدة المعتمدة حصراً: 1. Job ID · 2. Date Approved · 3. Project Status · 4. Actions'
-              : 'Strict Columns: 1. Job ID · 2. Date Approved · 3. Project Status · 4. Actions'}
+              ? 'استعراض وتحديث حالات المشاريع ومواقعها داخل البوكسات والدوسيهات.'
+              : 'Browse, search, and update project archiving statuses across boxes and dossiers.'}
           </p>
         </div>
 
@@ -78,7 +82,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#111111] p-3 rounded-xl border border-slate-200 dark:border-neutral-800">
         <div className="relative w-full sm:w-64">
           <Search className="absolute start-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
@@ -89,7 +93,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full ps-9 pe-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
+            className="w-full ps-9 pe-3 py-1.5 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
           />
         </div>
 
@@ -100,10 +104,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
               setBoxFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+            className="px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:border-[#0B56A8]"
           >
             <option value="all">{language === 'ar' ? 'كافة البوكسات' : 'All Boxes'}</option>
-            {boxes.map(b => (
+            {sortedBoxes.map(b => (
               <option key={b.id} value={b.boxCode}>
                 Box {b.boxCode}
               </option>
@@ -121,7 +125,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                 className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
                   statusFilter === s
                     ? 'bg-[#0B56A8] text-white font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-900'
                 }`}
               >
                 {s === 'all' && (language === 'ar' ? 'الكل' : 'All')}
@@ -134,24 +138,24 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-start">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 text-[11px] font-semibold border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-neutral-900/80 text-slate-500 text-[11px] font-semibold border-b border-slate-200 dark:border-neutral-800">
               <tr>
                 <th className="px-4 py-3 w-16">#</th>
-                <th className="px-4 py-3">1. Job ID</th>
-                <th className="px-4 py-3">2. Date Approved</th>
-                <th className="px-4 py-3">3. Project Status</th>
+                <th className="px-4 py-3">Job ID</th>
+                <th className="px-4 py-3">{language === 'ar' ? 'تاريخ الاعتماد' : 'Date Approved'}</th>
+                <th className="px-4 py-3">{language === 'ar' ? 'حالة المشروع' : 'Project Status'}</th>
                 <th className="px-4 py-3 text-slate-400">{language === 'ar' ? 'الموقع' : 'Location'}</th>
-                <th className="px-4 py-3 text-center">4. Actions</th>
+                <th className="px-4 py-3 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
               {paginatedProjects.map((p, idx) => (
                 <tr
                   key={p.jobId}
-                  className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                  className="hover:bg-slate-50/70 dark:hover:bg-neutral-900/40 transition-colors cursor-pointer"
                   onClick={() => setSelectedProject(p)}
                 >
                   <td className="px-4 py-3 text-slate-400 text-[11px] tabular-nums">
@@ -162,7 +166,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                     {p.jobId}
                   </td>
 
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="px-4 py-3 text-slate-600 dark:text-neutral-300">
                     {p.dateApproved ? (
                       <span className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -182,7 +186,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : p.status === 'Missing'
                           ? 'text-[#E52225] dark:text-red-400'
-                          : 'text-slate-500 dark:text-slate-400'
+                          : 'text-slate-500 dark:text-neutral-400'
                       }`}
                     >
                       {p.status === 'Archived' && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -193,7 +197,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                   </td>
 
                   <td className="px-4 py-3 text-[11px] text-slate-500">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{p.boxId}</span> · Dossier{' '}
+                    <span className="font-semibold text-slate-800 dark:text-neutral-200">{p.boxId}</span> · Dossier{' '}
                     {p.dossierNumber} (Slot #{p.slotIndex + 1})
                   </td>
 
@@ -202,7 +206,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                       <button
                         onClick={() => setSelectedProject(p)}
                         title={language === 'ar' ? 'تفاصيل المشروع' : 'View Details'}
-                        className="p-1.5 text-slate-600 hover:text-[#0B56A8] rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                        className="p-1.5 text-slate-600 dark:text-neutral-400 hover:text-[#0B56A8] dark:hover:text-blue-400 rounded hover:bg-slate-100 dark:hover:bg-neutral-900"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -213,7 +217,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                           setNewStatus(p.status);
                         }}
                         title={language === 'ar' ? 'تعديل الحالة' : 'Change Status'}
-                        className="p-1.5 text-slate-400 hover:text-[#0B56A8] rounded hover:bg-[#EAF2FB] dark:hover:bg-slate-800"
+                        className="p-1.5 text-slate-400 hover:text-[#0B56A8] dark:hover:text-blue-400 rounded hover:bg-[#EAF2FB] dark:hover:bg-neutral-900"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -232,7 +236,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
           </table>
         </div>
 
-        <div className="p-3 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-3 bg-slate-50/60 dark:bg-neutral-900/40 border-t border-slate-100 dark:border-neutral-800 flex items-center justify-between text-xs text-slate-500">
           <div>
             {language === 'ar'
               ? `عرض ${filteredProjects.length ? (currentPage - 1) * pageSize + 1 : 0} إلى ${Math.min(
@@ -249,7 +253,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-white dark:hover:bg-slate-800"
+              className="px-2.5 py-1 rounded border border-slate-200 dark:border-neutral-800 disabled:opacity-30 hover:bg-white dark:hover:bg-neutral-900"
             >
               {language === 'ar' ? 'السابق' : 'Previous'}
             </button>
@@ -259,7 +263,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-white dark:hover:bg-slate-800"
+              className="px-2.5 py-1 rounded border border-slate-200 dark:border-neutral-800 disabled:opacity-30 hover:bg-white dark:hover:bg-neutral-900"
             >
               {language === 'ar' ? 'التالي' : 'Next'}
             </button>
@@ -269,35 +273,38 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
 
       {selectedProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-800 pb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#0B56A8]" />
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   {language === 'ar' ? `تفاصيل المشروع #${selectedProject.jobId}` : `Project #${selectedProject.jobId} Details`}
                 </h2>
               </div>
-              <button onClick={() => setSelectedProject(null)} className="p-1 text-slate-400 hover:text-slate-900">
+              <button
+                onClick={() => setSelectedProject(null)}
+                className="p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Job ID</span>
                 <span className="font-bold text-sm text-[#0B56A8] dark:text-blue-400">
                   {selectedProject.jobId}
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Date Approved</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
                   {selectedProject.dateApproved || '—'}
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Project Status</span>
                 <span
                   className={`text-xs font-bold ${
@@ -305,48 +312,48 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                       ? 'text-emerald-600'
                       : selectedProject.status === 'Missing'
                       ? 'text-[#E52225]'
-                      : 'text-slate-600 dark:text-slate-300'
+                      : 'text-slate-600 dark:text-neutral-300'
                   }`}
                 >
                   {selectedProject.status}
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Archive Location</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
                   Box {selectedProject.boxId} · Dossier {selectedProject.dossierNumber} (Slot #{selectedProject.slotIndex + 1})
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Source Upload</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300 truncate block">
+                <span className="font-medium text-slate-700 dark:text-neutral-300 truncate block">
                   {selectedProject.sourceUpload}
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-neutral-900 rounded-lg">
                 <span className="text-[10px] text-slate-400 block mb-0.5">Last Update</span>
-                <span className="text-slate-600 dark:text-slate-400 text-[11px]">
+                <span className="text-slate-600 dark:text-neutral-400 text-[11px]">
                   {selectedProject.lastUpdateDate.slice(0, 16).replace('T', ' ')}
                 </span>
               </div>
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-1.5">
                 <History className="w-3.5 h-3.5" />
                 <span>{language === 'ar' ? 'سجل تغير الحالة (Status History)' : 'Status History'}</span>
               </h3>
-              <div className="max-h-36 overflow-y-auto space-y-1.5 border border-slate-100 dark:border-slate-800 rounded-lg p-2.5">
+              <div className="max-h-36 overflow-y-auto space-y-1.5 border border-slate-100 dark:border-neutral-800 rounded-lg p-2.5">
                 {selectedProject.statusHistory.map((h, i) => (
                   <div
                     key={i}
-                    className="text-[11px] flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/60 last:border-none"
+                    className="text-[11px] flex items-center justify-between py-1 border-b border-slate-50 dark:border-neutral-800/60 last:border-none"
                   >
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{h.status}</span>
+                      <span className="font-bold text-slate-800 dark:text-neutral-200">{h.status}</span>
                       {h.note && <span className="text-slate-400">· {h.note}</span>}
                     </div>
                     <span className="text-slate-400 text-[10px]">{h.timestamp.slice(0, 16)}</span>
@@ -358,10 +365,12 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => {
-                  setEditingProject(selectedProject);
-                  setNewStatus(selectedProject.status);
+                  const target = selectedProject;
+                  setSelectedProject(null);
+                  setEditingProject(target);
+                  setNewStatus(target.status);
                 }}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-neutral-200 bg-slate-100 dark:bg-neutral-900 hover:bg-slate-200 dark:hover:bg-neutral-800 rounded-lg transition-colors"
               >
                 {language === 'ar' ? 'تعديل الحالة' : 'Change Status'}
               </button>
@@ -378,14 +387,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
 
       {editingProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {language === 'ar' ? `تعديل حالة المشروع #${editingProject.jobId}` : `Update Status for Job #${editingProject.jobId}`}
             </h2>
 
             <form onSubmit={handleSaveStatus} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'الحالة الجديدة' : 'New Status'}
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -397,7 +406,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                       className={`py-1.5 text-xs font-bold rounded-lg border transition-colors ${
                         newStatus === s
                           ? 'border-[#0B56A8] bg-[#0B56A8] text-white'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          : 'border-slate-200 dark:border-neutral-800 text-slate-600 dark:text-neutral-300 hover:bg-slate-50 dark:hover:bg-neutral-900'
                       }`}
                     >
                       {s}
@@ -407,7 +416,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'ملاحظة التعديل' : 'Update Note'}
                 </label>
                 <input
@@ -415,7 +424,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                   placeholder={language === 'ar' ? 'مثال: تم العثور على الملف يدوياً...' : 'Reason for manual status change...'}
                   value={updateNote}
                   onChange={e => setUpdateNote(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:border-[#0B56A8]"
                 />
               </div>
 
@@ -423,7 +432,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
                 <button
                   type="button"
                   onClick={() => setEditingProject(null)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg"
+                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white rounded-lg"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>

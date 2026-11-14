@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { FolderArchive, Printer, Plus, Search, ArrowRight, Lock, Unlock } from 'lucide-react';
+import { Archive, Printer, Plus, Search, ArrowRight, Lock, Unlock } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { Box } from '../../types';
 import { ActiveTab } from '../navigation/TopNav';
@@ -45,19 +45,21 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
   const [forceCloseModalBox, setForceCloseModalBox] = useState<Box | null>(null);
   const [forceCloseReason, setForceCloseReason] = useState('');
 
-  const filteredBoxes = boxes.filter(b => {
-    const matchSearch =
-      b.boxCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(b.firstJobId).includes(searchTerm) ||
-      String(b.lastJobId).includes(searchTerm);
+  const filteredBoxes = boxes
+    .filter(b => {
+      const matchSearch =
+        b.boxCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(b.firstJobId).includes(searchTerm) ||
+        String(b.lastJobId).includes(searchTerm);
 
-    if (!matchSearch) return false;
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'ForceClosed') return b.isForceClosed;
-    if (statusFilter === 'Archived') return b.status === 'Archived';
-    if (statusFilter === 'Inprogress') return b.status === 'Inprogress' && !b.isForceClosed;
-    return true;
-  });
+      if (!matchSearch) return false;
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'ForceClosed') return b.isForceClosed;
+      if (statusFilter === 'Archived') return b.status === 'Archived';
+      if (statusFilter === 'Inprogress') return b.status === 'Inprogress' && !b.isForceClosed;
+      return true;
+    })
+    .sort((a, b) => a.firstJobId - b.firstJobId);
 
   const handleCreateBox = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,13 +83,13 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-neutral-800">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <FolderArchive className="w-6 h-6 text-[#0B56A8]" />
+            <Archive className="w-6 h-6 text-[#0B56A8] dark:text-blue-400" />
             <span>{language === 'ar' ? 'إدارة البوكسات (Boxes)' : 'Box Management'}</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-neutral-400 mt-0.5">
             {language === 'ar'
               ? 'كل بوكس يحتوي بدقة على 6 دوسيهات و 300 مشروع (Job Slots).'
               : 'Each archive box strictly holds 6 dossiers and 300 project slots.'}
@@ -112,16 +114,16 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
           <button
             onClick={() => onNavigate('labels')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-[#0B56A8] hover:text-[#0B56A8] rounded-lg transition-colors"
+            className="group inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-neutral-200 bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 hover:bg-[#0B56A8] hover:border-[#0B56A8] hover:text-white dark:hover:bg-[#0B56A8] dark:hover:border-[#0B56A8] dark:hover:text-white rounded-lg transition-colors"
           >
-            <Printer className="w-3.5 h-3.5" />
+            <Printer className="w-3.5 h-3.5 text-[#0B56A8] dark:text-blue-400 group-hover:text-white transition-colors" />
             <span>{language === 'ar' ? 'طباعة ليبلات البوكسات' : 'Print Labels'}</span>
           </button>
         </div>
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#111111] p-3 rounded-xl border border-slate-200 dark:border-neutral-800">
         <div className="relative w-full sm:w-72">
           <Search className="absolute start-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
@@ -129,7 +131,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
             placeholder={language === 'ar' ? 'بحث بكود البوكس أو رقم المشروع...' : 'Search box code or job ID...'}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full ps-9 pe-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
+            className="w-full ps-9 pe-3 py-1.5 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
           />
         </div>
 
@@ -141,7 +143,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
                 statusFilter === f
                   ? 'bg-[#0B56A8] text-white font-semibold shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-900'
               }`}
             >
               {f === 'all' && (language === 'ar' ? 'الكل' : 'All')}
@@ -154,10 +156,10 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
       </div>
 
       {/* Boxes Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-start">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 text-[11px] font-semibold border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-neutral-900/80 text-slate-500 text-[11px] font-semibold border-b border-slate-200 dark:border-neutral-800">
               <tr>
                 <th className="px-4 py-3">{language === 'ar' ? 'كود البوكس' : 'Box Code'}</th>
                 <th className="px-4 py-3">{language === 'ar' ? 'النطاق (FROM / TO)' : 'Range (From - To)'}</th>
@@ -170,7 +172,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                 <th className="px-4 py-3 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
               {filteredBoxes.map(box => {
                 const percent = ((box.archivedProjects / 300) * 100).toFixed(0);
                 return (
@@ -180,7 +182,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                       onSelectBox(box.id);
                       onNavigate('box-detail', box.id);
                     }}
-                    className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 cursor-pointer transition-colors group"
+                    className="hover:bg-slate-50/70 dark:hover:bg-neutral-900/40 cursor-pointer transition-colors group"
                   >
                     <td className="px-4 py-3 font-bold text-sm text-slate-900 dark:text-white">
                       <div className="flex items-center gap-2">
@@ -197,11 +199,11 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-[11px] text-slate-600 dark:text-slate-300 tabular-nums">
+                    <td className="px-4 py-3 text-[11px] text-slate-600 dark:text-neutral-300 tabular-nums">
                       {box.firstJobId} → {box.lastJobId}
                     </td>
 
-                    <td className="px-4 py-3 text-center font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+                    <td className="px-4 py-3 text-center font-semibold text-slate-800 dark:text-neutral-200 tabular-nums">
                       {box.completedDossiers} / 6
                     </td>
 
@@ -217,11 +219,11 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
                     <td className="px-4 py-3 min-w-[140px]">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                        <div className="flex-1 bg-slate-100 dark:bg-neutral-900 rounded-full h-2 overflow-hidden flex">
                           <div className="bg-[#0B56A8] h-full" style={{ width: `${(box.archivedProjects / 300) * 100}%` }} />
                           <div className="bg-[#E52225] h-full" style={{ width: `${(box.missingProjects / 300) * 100}%` }} />
                         </div>
-                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 tabular-nums w-8 text-end">
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-neutral-300 tabular-nums w-8 text-end">
                           {percent}%
                         </span>
                       </div>
@@ -244,7 +246,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                         <button
                           onClick={() => onNavigate('labels', box.boxCode)}
                           title={language === 'ar' ? 'طباعة 7 ليبلات (بوكس + 6 دوسيهات)' : 'Print 7-Page Labels'}
-                          className="p-1.5 text-slate-600 hover:text-[#0B56A8] dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="p-1.5 text-slate-600 hover:text-[#0B56A8] dark:text-neutral-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-neutral-900"
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
@@ -254,7 +256,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                             <button
                               onClick={() => reopenBox(box.id)}
                               title={language === 'ar' ? 'إلغاء الإغلاق الإداري' : 'Reopen Box'}
-                              className="p-1.5 text-[#B45309] hover:text-amber-900 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                              className="p-1.5 text-[#B45309] dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40"
                             >
                               <Unlock className="w-3.5 h-3.5" />
                             </button>
@@ -265,7 +267,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                                 setForceCloseReason('');
                               }}
                               title={language === 'ar' ? 'إغلاق إداري (Force Close)' : 'Force Close Box (Admin only)'}
-                              className="p-1.5 text-slate-400 hover:text-[#B45309] rounded hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                              className="p-1.5 text-slate-400 hover:text-[#B45309] dark:hover:text-amber-300 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40"
                             >
                               <Lock className="w-3.5 h-3.5" />
                             </button>
@@ -278,7 +280,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                           }}
                           className="p-1.5 text-slate-400 group-hover:text-[#0B56A8] dark:group-hover:text-white"
                         >
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                         </button>
                       </div>
                     </td>
@@ -300,7 +302,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
       {/* Force Close Admin Modal */}
       {forceCloseModalBox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
+          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
             <div className="flex items-center gap-2 text-[#B45309] dark:text-amber-400 font-bold">
               <Lock className="w-5 h-5" />
               <h2 className="text-base font-bold">
@@ -319,16 +321,16 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
             <form onSubmit={handleExecuteForceClose} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'البوكس المستهدف' : 'Target Box'}
                 </label>
-                <div className="text-sm font-bold bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg">
+                <div className="text-sm font-bold bg-slate-100 dark:bg-neutral-900 px-3 py-2 rounded-lg">
                   {forceCloseModalBox.boxCode} ({forceCloseModalBox.firstJobId} → {forceCloseModalBox.lastJobId})
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'سبب الإغلاق الإداري (إلزامي)' : 'Reason for Administrative Closure (Mandatory)'}
                 </label>
                 <textarea
@@ -341,7 +343,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                   }
                   value={forceCloseReason}
                   onChange={e => setForceCloseReason(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0B56A8]"
                 />
               </div>
 
@@ -349,7 +351,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setForceCloseModalBox(null)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 rounded-lg"
+                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white rounded-lg"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>
@@ -369,7 +371,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
       {/* Manual Create Box Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4">
+          <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl shadow-2xl max-w-sm w-full p-5 space-y-4">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {language === 'ar' ? 'إنشاء بوكس أرشفة جديد' : 'Create New Archive Box'}
             </h2>
@@ -381,7 +383,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
             <form onSubmit={handleCreateBox} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'كود البوكس (مثال D42)' : 'Box Code (e.g. D42)'}
                 </label>
                 <input
@@ -390,12 +392,12 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                   placeholder="D42"
                   value={newBoxCode}
                   onChange={e => setNewBoxCode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg uppercase"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg uppercase focus:outline-none focus:border-[#0B56A8]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
                   {language === 'ar' ? 'رقم أول مشروع في البوكس' : 'First Project Job ID'}
                 </label>
                 <input
@@ -403,7 +405,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                   required
                   value={newFirstJobId}
                   onChange={e => setNewFirstJobId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg tabular-nums"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg tabular-nums focus:outline-none focus:border-[#0B56A8]"
                 />
                 <div className="mt-1 text-[11px] text-slate-400">
                   {language === 'ar'
@@ -416,7 +418,7 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg"
+                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white rounded-lg"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>

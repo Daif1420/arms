@@ -25,8 +25,14 @@
   }
 
   .dark body {
-    background-color: #0B111A;
-    color: #F1F5F9;
+    background-color: #000000;
+    color: #F5F5F5;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -44,4 +50,10 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(163, 163, 163, 0.35);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 163, 163, 0.55);
 }
