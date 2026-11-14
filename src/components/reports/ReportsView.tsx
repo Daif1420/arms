@@ -50,7 +50,9 @@ export const ReportsView: React.FC = () => {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [printingReport, setPrintingReport] = useState(false);
 
-  const reportOptions: ReportOption[] = [
+  const isSystemAdmin = currentUser?.role === 'System Admin';
+
+  const allReportOptions: ReportOption[] = [
     { id: 'archived-projects', titleAr: '1. تقرير المشاريع المؤرشفة', titleEn: '1. Archived Projects', group: 'projects' },
     { id: 'missing-projects', titleAr: '2. تقرير المشاريع المفقودة (الفجوات)', titleEn: '2. Missing Projects (Gaps)', group: 'projects' },
     { id: 'pending-projects', titleAr: '3. تقرير المشاريع قيد الانتظار', titleEn: '3. Pending Projects', group: 'projects' },
@@ -65,6 +67,9 @@ export const ReportsView: React.FC = () => {
     { id: 'exception-report', titleAr: '12. تقرير الاستثناءات والفجوات', titleEn: '12. Exception Report', group: 'operations' },
     { id: 'force-close-report', titleAr: '13. تقرير الإغلاق الإداري (Force Close)', titleEn: '13. Force Close Report', group: 'operations' },
   ];
+
+  // The User Activity (Audit) report is restricted to System Admin only.
+  const reportOptions = allReportOptions.filter(opt => opt.id !== 'user-activity' || isSystemAdmin);
 
   const reportGroups: { key: ReportOption['group']; labelAr: string; labelEn: string }[] = [
     { key: 'projects', labelAr: 'تقارير المشاريع', labelEn: 'Projects' },
@@ -209,7 +214,7 @@ export const ReportsView: React.FC = () => {
 
     case 'user-activity':
       reportColumns = ['Timestamp', 'User', 'Action', 'Record Type', 'Record ID', 'Details'];
-      reportData = auditLogs.map(a => ({
+      reportData = (isSystemAdmin ? auditLogs : []).map(a => ({
         'Timestamp': a.timestamp,
         'User': a.userName,
         'Action': a.action,

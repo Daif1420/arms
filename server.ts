@@ -659,6 +659,9 @@ async function startServer() {
 
         if (req.method === 'GET') {
           const part = String(req.query.part || 'core');
+          if (part === 'audit' && user.role !== 'System Admin') {
+            return res.status(403).json({ error: 'سجل العمليات متاح لمدير النظام فقط.' });
+          }
           if (part === 'projects' || part === 'audit') {
             const limit = Math.max(1, Math.min(3000, Number(req.query.limit || 1000)));
             const offset = Math.max(0, Number(req.query.offset || 0));
@@ -669,7 +672,7 @@ async function startServer() {
           return res.json({
             users: user.role === 'System Admin' ? db.users.map(safeUser) : [],
             currentUser: safeUser(user),
-            counts: { projects: db.projects.length, auditLogs: db.auditLogs.length },
+            counts: { projects: db.projects.length, auditLogs: user.role === 'System Admin' ? db.auditLogs.length : 0 },
             boxes: db.boxes,
             dossiers: db.dossiers,
             uploadHistory: db.uploadHistory,
@@ -696,7 +699,13 @@ async function startServer() {
           db.projects = checked.state.projects;
           db.uploadHistory = checked.state.uploadHistory;
           db.notifications = checked.state.notifications;
-          db.auditLogs = checked.state.auditLogs;
+          if (user.role === 'System Admin') {
+            db.auditLogs = checked.state.auditLogs;
+          } else {
+            // Non-admins never see the audit log: append only genuinely new entries, keep existing ones untouched.
+            const known = new Set(db.auditLogs.map((a: any) => a.id));
+            db.auditLogs = [...checked.state.auditLogs.filter((a: any) => !known.has(a.id)), ...db.auditLogs];
+          }
           db.revision += 1;
           saveLocalDb(db);
           return res.json({ ok: true, revision: db.revision, updatedAt: new Date().toISOString() });
@@ -711,6 +720,9 @@ async function startServer() {
 
       if (req.method === 'GET') {
         const part = String(req.query.part || 'core');
+        if (part === 'audit' && user.role !== 'System Admin') {
+          return res.status(403).json({ error: 'سجل العمليات متاح لمدير النظام فقط.' });
+        }
         if (part === 'projects' || part === 'audit') {
           const limit = Math.max(1, Math.min(3000, Number(req.query.limit || 1000)));
           const offset = Math.max(0, Number(req.query.offset || 0));
@@ -737,7 +749,7 @@ async function startServer() {
           END AS users_json`;
         const head = JSON.stringify({
           currentUser: safeUser(user),
-          counts: { projects: Number(coreRow.projects_count), auditLogs: Number(coreRow.audit_count) },
+          counts: { projects: Number(coreRow.projects_count), auditLogs: isAdmin ? Number(coreRow.audit_count) : 0 },
         }).slice(0, -1);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         return res
@@ -758,7 +770,20 @@ async function startServer() {
         const checked = validateStatePayload(req.body);
         if (checked.error || !checked.state) return res.status(400).json({ error: checked.error });
         try {
-          const saved = await sql`SELECT public.arms_save_state(${JSON.stringify(checked.state)}::text::jsonb, ${expectedRevision}) AS revision`;
+          // Non-admins never receive the audit log, so merge their new entries into the existing log (append-only).
+          const stateJson = JSON.stringify(checked.state);
+          const saved =
+            user.role === 'System Admin'
+              ? await sql`SELECT public.arms_save_state(${stateJson}::text::jsonb, ${expectedRevision}) AS revision`
+              : await sql`SELECT public.arms_save_state(
+                  jsonb_set(
+                    ${stateJson}::text::jsonb,
+                    '{auditLogs}',
+                    COALESCE((SELECT jsonb_agg(data) FROM arms_audit_logs), '[]'::jsonb) ||
+                    COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(${stateJson}::text::jsonb->'auditLogs') AS x
+                               WHERE NOT EXISTS (SELECT 1 FROM arms_audit_logs a WHERE a.id = x->>'id')), '[]'::jsonb)
+                  ),
+                  ${expectedRevision}) AS revision`;
           return res.json({ ok: true, revision: Number(saved[0].revision), updatedAt: new Date().toISOString() });
         } catch (error: any) {
           if (error?.code === '40001' || String(error?.message || '').includes('ARMS_REVISION_CONFLICT')) {

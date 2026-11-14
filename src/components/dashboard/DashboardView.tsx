@@ -69,7 +69,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
   const isAdmin = currentUser.role === 'System Admin';
 
-  const quickActions = [
+  const allQuickActions: Array<{
+    id: string;
+    label: string;
+    icon: any;
+    accent: string;
+    onClick: () => void;
+    adminOnly?: boolean;
+  }> = [
     {
       id: 'print-label',
       label: isAr ? 'طباعة ليبل' : 'Print Label',
@@ -83,6 +90,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       icon: ClipboardList,
       accent: 'text-slate-700 bg-slate-100 dark:bg-neutral-900 dark:text-neutral-300',
       onClick: () => onNavigate('audit'),
+      adminOnly: true,
     },
     {
       id: 'create-dossier',
@@ -113,6 +121,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       onClick: () => onNavigate('projects', 'Missing'),
     },
   ];
+  const quickActions = allQuickActions.filter(action => !action.adminOnly || isAdmin);
 
   return (
     <div className="space-y-5">

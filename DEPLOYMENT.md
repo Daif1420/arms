@@ -38,6 +38,8 @@ Do not use `VITE_` prefixes for secrets. Never commit real credentials.
 ## Known scope boundary
 The browser currently sends the full archive state when saving. PostgreSQL stores records in separate relational tables and synchronizes them atomically, but the client still loads the whole archive into memory. Loading is split into small parallel requests (`/api/state?part=core|projects|audit`) so no single request can hit the Vercel timeout or the 4.5 MB response limit. For very large archives, implement paginated queries and dedicated import/status/delivery endpoints before company-wide high-volume operation. Data Entry and Viewer are read-only at this stage; assign Archive Manager only to users who may change archive data.
 
+The Audit Log is visible to **System Admin only**: the audit part of `/api/state` returns 403 for other roles, non-admins receive no audit entries on load, and their saves only append new entries (existing audit records are never replaced or deleted by non-admins).
+
 
 ## Environment administrator bootstrap
 `ARMS_ADMIN_USERNAME` and `ARMS_ADMIN_PASSWORD` are read only by the server. When the configured username does not already exist, the first authentication request creates one active `System Admin` account (even if other user accounts already exist). Its password is scrypt-hashed before it is stored in PostgreSQL. If that username already exists, environment variables do not reset its password or change its role. To change the password later, sign in and use the account password-change screen. The requested initial password `admin123` is temporary and weak; replace it immediately after first login with a unique password of at least 12 characters.

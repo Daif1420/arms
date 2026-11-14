@@ -300,16 +300,18 @@ export const TopNav: React.FC<TopNavProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => onNavigate('audit')}
-              className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
-                activeTab === 'audit' ? activeNavClass : inactiveNavClass
-              }`}
-            >
-              <ScrollText className="w-4 h-4 shrink-0" />
-              <span>{language === 'ar' ? 'سجل العمليات' : 'Audit Log'}</span>
-            </button>
+            {currentUser.role === 'System Admin' && (
+              <button
+                type="button"
+                onClick={() => onNavigate('audit')}
+                className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                  activeTab === 'audit' ? activeNavClass : inactiveNavClass
+                }`}
+              >
+                <ScrollText className="w-4 h-4 shrink-0" />
+                <span>{language === 'ar' ? 'سجل العمليات' : 'Audit Log'}</span>
+              </button>
+            )}
 
             {currentUser.role === 'System Admin' && (
               <button
@@ -538,17 +540,19 @@ export const TopNav: React.FC<TopNavProps> = ({
               </button>
             )}
 
-            <button
-              onClick={() => onNavigate('audit')}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg shrink-0 transition-colors ${
-                activeTab === 'audit'
-                  ? 'bg-[#0B56A8] text-white'
-                  : 'text-slate-700 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-900'
-              }`}
-            >
-              <ScrollText className="w-3.5 h-3.5" />
-              <span>{language === 'ar' ? 'السجل' : 'Audit'}</span>
-            </button>
+            {currentUser.role === 'System Admin' && (
+              <button
+                onClick={() => onNavigate('audit')}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg shrink-0 transition-colors ${
+                  activeTab === 'audit'
+                    ? 'bg-[#0B56A8] text-white'
+                    : 'text-slate-700 dark:text-neutral-300 hover:bg-slate-100 dark:hover:bg-neutral-900'
+                }`}
+              >
+                <ScrollText className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'السجل' : 'Audit'}</span>
+              </button>
+            )}
 
             {currentUser.role === 'System Admin' && (
               <button

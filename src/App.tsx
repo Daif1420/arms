@@ -26,6 +26,7 @@ import { IntercomLogo } from './components/common/IntercomLogo';
 function MainApp() {
   const {
     language,
+    currentUser,
     dossiers,
     authenticated,
     authLoading,
@@ -230,7 +231,7 @@ function MainApp() {
 
         {activeTab === 'reports' && <ReportsView />}
 
-        {activeTab === 'audit' && <AuditLogView />}
+        {activeTab === 'audit' && currentUser.role === 'System Admin' && <AuditLogView />}
 
         {activeTab === 'users' && <UsersManagementView onNavigate={handleNavigate} />}
       </main>

@@ -61,6 +61,10 @@ function sendRawJson(res: VercelResponse, rawJson: string) {
 async function readState(req: VercelRequest, res: VercelResponse, sql: SqlClient, user: DbUser) {
   const part = String(Array.isArray(req.query.part) ? req.query.part[0] : req.query.part || 'core');
 
+  if (part === 'audit' && user.role !== 'System Admin') {
+    return res.status(403).json({ error: 'سجل العمليات متاح لمدير النظام فقط.' });
+  }
+
   if (part === 'projects' || part === 'audit') {
     const limit = Math.max(1, toInt(req.query.limit, DEFAULT_PAGE, MAX_PAGE));
     const offset = toInt(req.query.offset, 0);
@@ -107,7 +111,7 @@ async function readState(req: VercelRequest, res: VercelResponse, sql: SqlClient
 
   const head = JSON.stringify({
     currentUser: publicUser(user),
-    counts: { projects: Number(coreRow.projects_count), auditLogs: Number(coreRow.audit_count) },
+    counts: { projects: Number(coreRow.projects_count), auditLogs: isAdmin ? Number(coreRow.audit_count) : 0 },
   }).slice(0, -1);
 
   const rawJson =
@@ -222,8 +226,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
       try {
+        // Non-admins never receive the audit log, so their payload only carries NEW entries.
+        // Merge those into the existing log (append-only) instead of letting the save replace it.
+        const stateJson = JSON.stringify(state);
         const saved = await withTimeout(
-          sql`SELECT public.arms_save_state(${JSON.stringify(state)}::text::jsonb, ${expectedRevision}) AS revision`
+          user.role === 'System Admin'
+            ? sql`SELECT public.arms_save_state(${stateJson}::text::jsonb, ${expectedRevision}) AS revision`
+            : sql`SELECT public.arms_save_state(
+                    jsonb_set(
+                      ${stateJson}::text::jsonb,
+                      '{auditLogs}',
+                      COALESCE((SELECT jsonb_agg(data) FROM arms_audit_logs), '[]'::jsonb) ||
+                      COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(${stateJson}::text::jsonb->'auditLogs') AS x
+                                 WHERE NOT EXISTS (SELECT 1 FROM arms_audit_logs a WHERE a.id = x->>'id')), '[]'::jsonb)
+                    ),
+                    ${expectedRevision}) AS revision`
         );
         return res.status(200).json({ ok: true, revision: Number(saved[0].revision), updatedAt: new Date().toISOString() });
       } catch (error: any) {
