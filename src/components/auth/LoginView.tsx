@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { IntercomLogo } from '../common/IntercomLogo';
-import archiveReportsHero from '../../assets/images/archive_vault_boxes_1794678224311.jpg';
+import archiveReportsHero from '../../assets/images/archive_boxes_d42_d43_shelf_1794679846990.jpg';
 
 const THEME_KEY = 'arms_theme';
 const readTheme = () => {
@@ -293,46 +293,46 @@ export const LoginView: React.FC = () => {
       </section>
 
       {/* Left Column in RTL (Architectural Visual Showcase Panel) */}
-      <aside className="relative hidden lg:flex items-start justify-center px-10 pt-10 pb-12 overflow-hidden bg-[#0B1F3B] dark:bg-black">
+      <aside className="relative hidden lg:flex items-end justify-center px-10 pt-10 pb-8 xl:pb-10 overflow-hidden bg-[#0B1F3B] dark:bg-black">
         {!heroError ? (
           <img
             src={HERO_IMAGE_SRC}
-            alt="Archive Boxes with ARMS Thermal Labels"
+            alt="Archive Boxes D42 and D43 with ARMS Thermal Labels"
             referrerPolicy="no-referrer"
             onError={() => setHeroError(true)}
-            className="absolute inset-0 w-full h-full object-cover object-bottom"
+            className="absolute inset-0 w-full h-full object-cover object-[center_28%]"
           />
         ) : null}
 
         {/* Measured contrast scrim */}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-[#08162B]/75 via-[#0B56A8]/20 to-black/35 dark:from-black/80 dark:via-black/30 dark:to-black/50"
+          className="absolute inset-0 bg-gradient-to-b from-[#08162B]/20 via-[#0B56A8]/15 to-black/60 dark:from-black/30 dark:via-black/25 dark:to-black/70"
           aria-hidden="true"
         />
 
-        {/* Frosted Feature Showcase Card */}
-        <div className="relative z-10 w-full max-w-md rounded-2xl bg-white/90 dark:bg-[#111111]/90 backdrop-blur-md border border-white/70 dark:border-neutral-800/70 p-7 shadow-2xl">
+        {/* Lower-Center Frosted Feature Showcase Card */}
+        <div className="relative z-10 w-full max-w-md rounded-2xl bg-white/92 dark:bg-[#111111]/92 backdrop-blur-md border border-white/75 dark:border-neutral-800/80 p-6 shadow-2xl">
           <div className="text-xs font-bold text-[#0B56A8] dark:text-blue-400">
             {t('منصة إدارة الأرشيف · ARMS', 'Archive Operations Platform · ARMS')}
           </div>
 
-          <h2 className="mt-2 text-2xl font-extrabold text-[#0B56A8] dark:text-white leading-snug text-balance">
+          <h2 className="mt-1.5 text-2xl font-extrabold text-[#0B56A8] dark:text-white leading-snug text-balance">
             {t('كل بيانات الأرشيف في مكان واحد', 'All Archive Operations in One Place')}
           </h2>
 
-          <p className="mt-2.5 text-sm text-slate-600 dark:text-neutral-300 leading-relaxed">
+          <p className="mt-2 text-sm text-slate-600 dark:text-neutral-300 leading-relaxed">
             {t(
               'تابع حالة البوكسات والدوسيهات، استورد ملفات المشاريع، واطبع الليبلات الحرارية وتقارير التدقيق بسهولة من خلال لوحة واحدة.',
               'Track archive boxes and dossiers, import project batches, print thermal labels, and monitor audit reports from one unified console.'
             )}
           </p>
 
-          <hr className="my-6 border-slate-200/90 dark:border-neutral-800/80" />
+          <hr className="my-4 border-slate-200/90 dark:border-neutral-800/80" />
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-[#EAF2FB] dark:bg-[#0B56A8]/25 text-[#0B56A8] dark:text-blue-400 flex items-center justify-center shrink-0">
-                <Archive className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-[#EAF2FB] dark:bg-[#0B56A8]/25 text-[#0B56A8] dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Archive className="w-4.5 h-4.5" />
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 dark:text-white">
@@ -345,8 +345,8 @@ export const LoginView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-[#B45309] dark:text-amber-400 flex items-center justify-center shrink-0">
-                <FileBarChart className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-[#B45309] dark:text-amber-400 flex items-center justify-center shrink-0">
+                <FileBarChart className="w-4.5 h-4.5" />
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 dark:text-white">
@@ -359,8 +359,8 @@ export const LoginView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/40 text-[#E52225] dark:text-red-400 flex items-center justify-center shrink-0">
-                <Printer className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-[#E52225] dark:text-red-400 flex items-center justify-center shrink-0">
+                <Printer className="w-4.5 h-4.5" />
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 dark:text-white">

@@ -11,6 +11,7 @@ import { generateQRDataURL, getQRCodeText, LABEL_ARMS_LOGO, LABEL_LOGO } from '.
 interface LabelCanvasPreviewProps {
   data: LabelData;
   scale?: number; // scale multiplier for visual display
+  responsive?: boolean;
   className?: string;
 }
 
@@ -264,6 +265,7 @@ export const LabelVectorSvg: React.FC<LabelVectorSvgProps> = ({ data, qrSrc }) =
 export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
   data,
   scale = 1.0,
+  responsive = false,
   className = '',
 }) => {
   const [qrSrc, setQrSrc] = useState<string>('');
@@ -284,11 +286,18 @@ export const LabelCanvasPreview: React.FC<LabelCanvasPreviewProps> = ({
 
   return (
     <div
-      className={`inline-block shadow-sm transition-all bg-white select-none rounded border border-slate-300 dark:border-neutral-800 ${className}`}
-      style={{
-        width: `${widthMm * 3.78 * scale}px`,
-        height: `${heightMm * 3.78 * scale}px`,
-      }}
+      dir="ltr"
+      className={`${
+        responsive ? 'block w-full aspect-[2/1]' : 'inline-block'
+      } shadow-sm transition-all bg-white select-none rounded border border-slate-300 dark:border-neutral-800 overflow-hidden ${className}`}
+      style={
+        responsive
+          ? undefined
+          : {
+              width: `${widthMm * 3.78 * scale}px`,
+              height: `${heightMm * 3.78 * scale}px`,
+            }
+      }
     >
       <LabelVectorSvg data={data} qrSrc={qrSrc} />
     </div>
