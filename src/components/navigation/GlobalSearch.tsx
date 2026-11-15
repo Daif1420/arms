@@ -1,6 +1,6 @@
 /**
- * ARMS - Global Search Command Palette
- * Indexes boxes, dossiers, and projects from ArchiveContext for instant ID and keyword lookup.
+ * ARMS - Inline Global Search Bar
+ * Placed above the Dashboard KPIs; indexes boxes, dossiers, and projects from ArchiveContext.
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -29,69 +29,68 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
   const { boxes, dossiers, projects, searchIndex, searchArchive, language } = useArchive();
   const isAr = language === 'ar';
 
-  const [open, setOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<SearchEntityType | 'all'>('all');
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const { results, totalMatches, countsByType } = useMemo(
-    () => searchArchive(query, { type: typeFilter, limit: 24 }),
+    () => searchArchive(query, { type: typeFilter, limit: 20 }),
     [searchArchive, query, typeFilter]
   );
 
-  // Global keyboard shortcut: Ctrl+K / Cmd+K or '/' when outside form inputs
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Global keyboard shortcut: Ctrl+K / Cmd+K or '/' focuses the inline search bar
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setOpen(prev => !prev);
+        inputRef.current?.focus();
+        setDropdownOpen(true);
         return;
       }
 
-      if (e.key === '/' && !open) {
+      if (e.key === '/') {
         const target = e.target as HTMLElement | null;
         const tag = target?.tagName?.toLowerCase();
         if (tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable) {
           return;
         }
         e.preventDefault();
-        setOpen(true);
+        inputRef.current?.focus();
+        setDropdownOpen(true);
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open]);
-
-  // Focus input when opened and reset keyboard highlight on query/filter change
-  useEffect(() => {
-    if (!open) return;
-    const id = window.setTimeout(() => inputRef.current?.focus(), 10);
-    return () => window.clearTimeout(id);
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [query, typeFilter, open]);
+  }, [query, typeFilter]);
 
-  // Keep active keyboard selection visible inside scroll container
   useEffect(() => {
-    if (!open || !listRef.current) return;
+    if (!dropdownOpen || !listRef.current) return;
     const activeEl = listRef.current.querySelector<HTMLElement>(`[data-search-index="${activeIndex}"]`);
     if (activeEl) {
       activeEl.scrollIntoView({ block: 'nearest' });
     }
-  }, [activeIndex, open]);
-
-  const closeSearch = () => {
-    setOpen(false);
-    setQuery('');
-    setTypeFilter('all');
-    setActiveIndex(0);
-  };
+  }, [activeIndex, dropdownOpen]);
 
   const handleSelectItem = (item: ArchiveSearchItem) => {
     if (item.type === 'box') {
@@ -101,15 +100,30 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
     } else if (item.type === 'project' && item.jobId !== undefined) {
       onNavigate('projects', String(item.jobId));
     }
-    closeSearch();
+    setDropdownOpen(false);
+    setQuery('');
+    setTypeFilter('all');
   };
 
-  const handleDialogKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.preventDefault();
-      closeSearch();
+      if (query) {
+        setQuery('');
+      } else {
+        setDropdownOpen(false);
+        inputRef.current?.blur();
+      }
       return;
     }
+
+    if (!dropdownOpen) {
+      if (e.key === 'ArrowDown') {
+        setDropdownOpen(true);
+      }
+      return;
+    }
+
     if (results.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -219,245 +233,233 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
   const allCount = countsByType.box + countsByType.dossier + countsByType.project;
 
   return (
-    <>
-      {/* TopNav Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        title={isAr ? 'بحث شامل (Ctrl+K)' : 'Global Search (Ctrl+K)'}
-        aria-label={isAr ? 'بحث شامل في الأرشيف' : 'Open global archive search'}
-        className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 text-xs text-slate-500 dark:text-neutral-400 bg-slate-50 dark:bg-neutral-900 hover:bg-slate-100 dark:hover:bg-neutral-800 border border-slate-200 dark:border-neutral-800 hover:border-[#0B56A8]/50 rounded-lg transition-colors"
+    <div ref={containerRef} className="relative z-30">
+      {/* Inline Search Bar Card */}
+      <div
+        className={`bg-white dark:bg-[#111111] border rounded-xl transition-colors ${
+          dropdownOpen
+            ? 'border-[#0B56A8] ring-2 ring-[#0B56A8]/15'
+            : 'border-slate-200 dark:border-neutral-800 hover:border-slate-300 dark:hover:border-neutral-700'
+        }`}
       >
-        <Search className="w-3.5 h-3.5 text-[#0B56A8] dark:text-blue-400 shrink-0" />
-        <span className="hidden md:inline text-[11px] font-medium whitespace-nowrap">
-          {isAr ? 'بحث سريع...' : 'Quick search...'}
-        </span>
-        <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 dark:text-neutral-500 bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded">
-          ⌘K
-        </kbd>
-      </button>
-
-      {/* Search Palette Modal */}
-      {open && (
-        <div
-          dir={isAr ? 'rtl' : 'ltr'}
-          className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-20 px-4 bg-slate-900/45 dark:bg-black/75 backdrop-blur-xs"
-          onMouseDown={e => {
-            if (e.target === e.currentTarget) closeSearch();
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={isAr ? 'البحث الشامل في الأرشيف' : 'Global Archive Search'}
-            onKeyDown={handleDialogKeyDown}
-            className="w-full max-w-2xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-2xl overflow-hidden"
-          >
-            {/* Input Row */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-neutral-800">
-              <Search className="w-4 h-4 text-[#0B56A8] dark:text-blue-400 shrink-0" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={
-                  isAr
-                    ? 'ابحث برقم البوكس (D42)، الدوسيه (D42-1)، رقم المشروع (35500)، الحالة أو اسم الملف...'
-                    : 'Search by Box (D42), Dossier (D42-1), Job ID (35500), status, date, or filename...'
-                }
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-neutral-500 focus:outline-none"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery('');
-                    inputRef.current?.focus();
-                  }}
-                  className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-neutral-800"
-                  aria-label={isAr ? 'مسح البحث' : 'Clear search'}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-3.5 py-2.5">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <Search className="w-4 h-4 text-[#0B56A8] dark:text-blue-400 shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onFocus={() => setDropdownOpen(true)}
+              onChange={e => {
+                setQuery(e.target.value);
+                setDropdownOpen(true);
+              }}
+              onKeyDown={handleInputKeyDown}
+              placeholder={
+                isAr
+                  ? 'بحث شامل: ابحث برقم البوكس (D42)، الدوسيه (D42-1)، رقم المشروع (35500)، أو أي كلمة مفتاحية...'
+                  : 'Global search: find any Box (D42), Dossier (D42-1), Project ID (35500), status, date, or keyword...'
+              }
+              aria-label={isAr ? 'البحث الشامل في الأرشيف' : 'Global archive search'}
+              className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-neutral-500 focus:outline-none"
+            />
+            {query && (
               <button
                 type="button"
-                onClick={closeSearch}
-                className="px-2 py-1 text-[10px] font-bold text-slate-500 dark:text-neutral-400 bg-slate-100 dark:bg-neutral-900 hover:bg-slate-200 dark:hover:bg-neutral-800 rounded-md"
+                onClick={() => {
+                  setQuery('');
+                  inputRef.current?.focus();
+                  setDropdownOpen(true);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-neutral-800 shrink-0"
+                aria-label={isAr ? 'مسح البحث' : 'Clear search'}
               >
-                ESC
+                <X className="w-3.5 h-3.5" />
               </button>
-            </div>
+            )}
+          </div>
 
-            {/* Category Filter Tabs */}
-            <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50/70 dark:bg-neutral-950/60 border-b border-slate-100 dark:border-neutral-800 overflow-x-auto">
-              <div className="flex items-center gap-1">
-                {(
-                  [
-                    { key: 'all', label: isAr ? 'الكل' : 'All', count: query.trim() ? allCount : searchIndex.length },
-                    { key: 'box', label: isAr ? 'البوكسات' : 'Boxes', count: query.trim() ? countsByType.box : boxes.length },
-                    {
-                      key: 'dossier',
-                      label: isAr ? 'الدوسيهات' : 'Dossiers',
-                      count: query.trim() ? countsByType.dossier : dossiers.length,
-                    },
-                    {
-                      key: 'project',
-                      label: isAr ? 'المشاريع' : 'Projects',
-                      count: query.trim() ? countsByType.project : projects.length,
-                    },
-                  ] as const
-                ).map(tab => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setTypeFilter(tab.key)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                      typeFilter === tab.key
-                        ? 'bg-[#0B56A8] text-white'
-                        : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-200/70 dark:hover:bg-neutral-900'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={`tabular-nums text-[10px] px-1.5 py-0.2 rounded ${
-                        typeFilter === tab.key
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-200/70 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400'
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <span className="text-[10px] text-slate-400 dark:text-neutral-500 whitespace-nowrap hidden sm:inline">
-                {isAr ? `${searchIndex.length} سجل مفهرس` : `${searchIndex.length} indexed items`}
-              </span>
-            </div>
-
-            {/* Body */}
-            <div ref={listRef} className="max-h-[60vh] overflow-y-auto divide-y divide-slate-100 dark:divide-neutral-800/80">
-              {!query.trim() ? (
-                <div className="p-5 space-y-4">
-                  <div className="text-xs text-slate-500 dark:text-neutral-400">
-                    {isAr
-                      ? 'اكتب رقم البوكس أو الدوسيه أو المشروع أو أي كلمة مفتاحية (الحالة، التاريخ، اسم ملف الاستيراد) للوصول السريع.'
-                      : 'Type a Box code, Dossier ID, Project Job ID, status, approval date, or source filename to jump straight to it.'}
-                  </div>
-
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-neutral-500 mb-2">
-                      {isAr ? 'أمثلة بحث سريعة' : 'Quick Search Examples'}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {quickExamples.map(sample => (
-                        <button
-                          key={sample}
-                          type="button"
-                          onClick={() => {
-                            setQuery(sample);
-                            inputRef.current?.focus();
-                          }}
-                          className="px-2.5 py-1 text-xs font-semibold text-[#0B56A8] dark:text-blue-300 bg-[#EAF2FB] dark:bg-[#0B56A8]/20 hover:bg-blue-100 dark:hover:bg-[#0B56A8]/35 rounded-lg transition-colors"
-                        >
-                          {sample}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : results.length === 0 ? (
-                <div className="py-12 px-4 text-center space-y-1.5">
-                  <div className="text-sm font-bold text-slate-700 dark:text-neutral-200">
-                    {isAr ? `لا توجد نتائج مطابقة لـ "${query}"` : `No results found for "${query}"`}
-                  </div>
-                  <p className="text-xs text-slate-400 dark:text-neutral-500">
-                    {isAr
-                      ? 'جرب البحث برقم المشروع (مثل 35500) أو رمز البوكس (مثل D42) أو حالة الأرشفة.'
-                      : 'Try searching by Job ID (e.g. 35500), Box code (e.g. D42), Dossier ID (D42-1), or status.'}
-                  </p>
-                </div>
-              ) : (
-                results.map((item, idx) => {
-                  const info = renderItemContent(item);
-                  const isActive = idx === activeIndex;
-                  return (
-                    <button
-                      key={item.uid}
-                      type="button"
-                      data-search-index={idx}
-                      onMouseEnter={() => setActiveIndex(idx)}
-                      onClick={() => handleSelectItem(item)}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors ${
-                        isActive
-                          ? 'bg-[#EAF2FB]/80 dark:bg-[#0B56A8]/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-neutral-900/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${info.iconBoxClass}`}
-                        >
-                          {info.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                              {info.title}
-                            </span>
-                            <span className="text-[10px] font-semibold text-slate-400 dark:text-neutral-500">
-                              {info.typeLabel}
-                            </span>
-                            {statusBadge(item)}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-neutral-400 truncate mt-0.5 tabular-nums">
-                            {info.subtitle}
-                          </div>
-                        </div>
-                      </div>
-
-                      <ArrowRight
-                        className={`w-4 h-4 shrink-0 rtl:rotate-180 transition-colors ${
-                          isActive ? 'text-[#0B56A8] dark:text-blue-400' : 'text-slate-300 dark:text-neutral-700'
-                        }`}
-                      />
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-2.5 bg-slate-50 dark:bg-neutral-950 border-t border-slate-100 dark:border-neutral-800 flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-neutral-500">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1">
-                  <CornerDownLeft className="w-3 h-3" />
-                  <span>{isAr ? 'فتح النتيجة' : 'Open'}</span>
-                </span>
-                <span>↑↓ {isAr ? 'تنقل' : 'Navigate'}</span>
-                <span>ESC {isAr ? 'إغلاق' : 'Close'}</span>
-              </div>
-
-              {query.trim() && totalMatches > results.length && (
+          <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-neutral-800 shrink-0">
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {(
+                [
+                  { key: 'all', label: isAr ? 'الكل' : 'All', count: query.trim() ? allCount : searchIndex.length },
+                  { key: 'box', label: isAr ? 'بوكس' : 'Boxes', count: query.trim() ? countsByType.box : boxes.length },
+                  {
+                    key: 'dossier',
+                    label: isAr ? 'دوسيه' : 'Dossiers',
+                    count: query.trim() ? countsByType.dossier : dossiers.length,
+                  },
+                  {
+                    key: 'project',
+                    label: isAr ? 'مشروع' : 'Projects',
+                    count: query.trim() ? countsByType.project : projects.length,
+                  },
+                ] as const
+              ).map(tab => (
                 <button
+                  key={tab.key}
                   type="button"
                   onClick={() => {
-                    onNavigate('projects', query.trim());
-                    closeSearch();
+                    setTypeFilter(tab.key);
+                    setDropdownOpen(true);
+                    inputRef.current?.focus();
                   }}
-                  className="font-semibold text-[#0B56A8] dark:text-blue-400 hover:underline"
+                  className={`flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                    typeFilter === tab.key
+                      ? 'bg-[#0B56A8] text-white'
+                      : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-900'
+                  }`}
                 >
-                  {isAr
-                    ? `عرض كل النتائج (${totalMatches}) في سجل المشاريع`
-                    : `View all ${totalMatches} matches in Projects`}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`tabular-nums text-[10px] px-1 rounded ${
+                      typeFilter === tab.key
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
                 </button>
-              )}
+              ))}
             </div>
+
+            <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 dark:text-neutral-500 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded">
+              ⌘K
+            </kbd>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Dropdown Panel */}
+      {dropdownOpen && (
+        <div
+          role="region"
+          aria-label={isAr ? 'نتائج البحث الشامل' : 'Global search results'}
+          className="absolute start-0 end-0 top-full mt-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden"
+        >
+          <div ref={listRef} className="max-h-[420px] overflow-y-auto divide-y divide-slate-100 dark:divide-neutral-800/80">
+            {!query.trim() ? (
+              <div className="p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-neutral-400">
+                  <span>
+                    {isAr
+                      ? 'ابحث بالرقم التعريفي أو الكلمات المفتاحية (الحالة، التاريخ، اسم ملف الاستيراد).'
+                      : 'Search by ID or keywords (status, approval date, or Excel source filename).'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-400 dark:text-neutral-500 tabular-nums">
+                    {isAr ? `${searchIndex.length.toLocaleString()} عنصر مفهرس` : `${searchIndex.length.toLocaleString()} indexed items`}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-neutral-500 me-1">
+                    {isAr ? 'أمثلة سريعة:' : 'Quick try:'}
+                  </span>
+                  {quickExamples.map(sample => (
+                    <button
+                      key={sample}
+                      type="button"
+                      onClick={() => {
+                        setQuery(sample);
+                        inputRef.current?.focus();
+                      }}
+                      className="px-2.5 py-1 text-xs font-semibold text-[#0B56A8] dark:text-blue-300 bg-[#EAF2FB] dark:bg-[#0B56A8]/20 hover:bg-blue-100 dark:hover:bg-[#0B56A8]/35 rounded-lg transition-colors"
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="py-10 px-4 text-center space-y-1">
+                <div className="text-sm font-bold text-slate-700 dark:text-neutral-200">
+                  {isAr ? `لا توجد نتائج مطابقة لـ "${query}"` : `No results found for "${query}"`}
+                </div>
+                <p className="text-xs text-slate-400 dark:text-neutral-500">
+                  {isAr
+                    ? 'جرب البحث برقم المشروع (مثل 35500) أو رمز البوكس (مثل D42) أو حالة الأرشفة.'
+                    : 'Try searching by Job ID (e.g. 35500), Box code (e.g. D42), Dossier ID (D42-1), or status.'}
+                </p>
+              </div>
+            ) : (
+              results.map((item, idx) => {
+                const info = renderItemContent(item);
+                const isActive = idx === activeIndex;
+                return (
+                  <button
+                    key={item.uid}
+                    type="button"
+                    data-search-index={idx}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    onClick={() => handleSelectItem(item)}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 text-start transition-colors ${
+                      isActive
+                        ? 'bg-[#EAF2FB]/80 dark:bg-[#0B56A8]/20'
+                        : 'hover:bg-slate-50 dark:hover:bg-neutral-900/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${info.iconBoxClass}`}
+                      >
+                        {info.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {info.title}
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-400 dark:text-neutral-500">
+                            {info.typeLabel}
+                          </span>
+                          {statusBadge(item)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-neutral-400 truncate mt-0.5 tabular-nums">
+                          {info.subtitle}
+                        </div>
+                      </div>
+                    </div>
+
+                    <ArrowRight
+                      className={`w-4 h-4 shrink-0 rtl:rotate-180 transition-colors ${
+                        isActive ? 'text-[#0B56A8] dark:text-blue-400' : 'text-slate-300 dark:text-neutral-700'
+                      }`}
+                    />
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="px-4 py-2 bg-slate-50 dark:bg-neutral-950 border-t border-slate-100 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-neutral-500">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1">
+                <CornerDownLeft className="w-3 h-3" />
+                <span>{isAr ? 'فتح النتيجة' : 'Open'}</span>
+              </span>
+              <span>↑↓ {isAr ? 'تنقل' : 'Navigate'}</span>
+              <span>ESC {isAr ? 'إغلاق' : 'Close'}</span>
+            </div>
+
+            {query.trim() && totalMatches > results.length && (
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('projects', query.trim());
+                  setDropdownOpen(false);
+                }}
+                className="font-semibold text-[#0B56A8] dark:text-blue-400 hover:underline"
+              >
+                {isAr
+                  ? `عرض كل النتائج (${totalMatches}) في سجل المشاريع`
+                  : `View all ${totalMatches} matches in Projects`}
+              </button>
+            )}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };

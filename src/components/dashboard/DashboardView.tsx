@@ -26,6 +26,7 @@ import {
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { useArchive } from '../../context/ArchiveContext';
 import { ActiveTab } from '../navigation/TopNav';
+import { GlobalSearch } from '../navigation/GlobalSearch';
 
 interface DashboardViewProps {
   onNavigate: (tab: ActiveTab, param?: string) => void;
@@ -147,6 +148,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           <span>{isAr ? 'استيراد Excel' : 'Import Excel'}</span>
         </button>
       </div>
+
+      {/* Global Archive Search (indexed from context) */}
+      <GlobalSearch onNavigate={onNavigate} />
 
       {/* Unified KPI Strip + Progress Bar */}
       <section
