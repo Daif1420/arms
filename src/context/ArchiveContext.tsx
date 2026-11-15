@@ -3,7 +3,7 @@
  * Handles persistent state, permissions, recalculations, audit trails, notifications, and in-app toasts.
  */
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box,
   Dossier,
@@ -13,6 +13,8 @@ import {
   NotificationItem,
   AuditLogEntry,
   ProjectStatus,
+  ArchiveSearchItem,
+  SearchEntityType,
 } from '../types';
 import { buildBoxStructure } from '../utils/archiveCalculations';
 import { apiFetch, errorFrom, loadArchiveSnapshot, setSessionToken } from '../utils/archiveApi';
@@ -74,6 +76,15 @@ interface ArchiveContextType {
   ) => Promise<void>;
   toggleUserStatus: (id: string) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
+  searchIndex: ArchiveSearchItem[];
+  searchArchive: (
+    query: string,
+    options?: { type?: SearchEntityType | 'all'; limit?: number }
+  ) => {
+    results: ArchiveSearchItem[];
+    totalMatches: number;
+    countsByType: Record<SearchEntityType, number>;
+  };
 }
 
 const ArchiveContext = createContext<ArchiveContextType | undefined>(undefined);
@@ -685,6 +696,213 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   };
 
+  const searchIndex = useMemo<ArchiveSearchItem[]>(() => {
+    const statusKeywords = (status: string): string => {
+      switch (status) {
+        case 'Archived':
+          return 'archived مؤرشف مكتمل';
+        case 'Missing':
+          return 'missing مفقود فجوة gap';
+        case 'Pending':
+          return 'pending قيد الانتظار معلق';
+        case 'Inprogress':
+          return 'inprogress in progress قيد التنفيذ جاري';
+        default:
+          return status.toLowerCase();
+      }
+    };
+
+    const items: ArchiveSearchItem[] = [];
+
+    for (const box of boxes) {
+      const searchText = [
+        box.boxCode,
+        box.id,
+        `box ${box.boxCode}`,
+        `بوكس ${box.boxCode}`,
+        `صندوق ${box.boxCode}`,
+        String(box.firstJobId),
+        String(box.lastJobId),
+        `${box.firstJobId}-${box.lastJobId}`,
+        statusKeywords(box.status),
+        box.isForceClosed ? 'force close force closed مغلق إدارياً إغلاق إداري' : '',
+        box.forceCloseReason || '',
+        box.forceClosedBy || '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      items.push({
+        uid: `box:${box.boxCode}`,
+        type: 'box',
+        primaryId: box.boxCode,
+        boxId: box.boxCode,
+        status: box.isForceClosed ? 'Force Closed' : box.status,
+        searchText,
+        secondaryIds: [String(box.firstJobId), String(box.lastJobId)],
+        box,
+      });
+    }
+
+    for (const dossier of dossiers) {
+      const searchText = [
+        dossier.id,
+        dossier.boxId,
+        `box ${dossier.boxId}`,
+        `dossier ${dossier.dossierNumber}`,
+        `دوسيه ${dossier.dossierNumber}`,
+        `ملف ${dossier.dossierNumber}`,
+        `${dossier.boxId} ${dossier.dossierNumber}`,
+        String(dossier.fromJobId),
+        String(dossier.toJobId),
+        `${dossier.fromJobId}-${dossier.toJobId}`,
+        statusKeywords(dossier.status),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      items.push({
+        uid: `dossier:${dossier.id}`,
+        type: 'dossier',
+        primaryId: dossier.id,
+        boxId: dossier.boxId,
+        dossierNumber: dossier.dossierNumber,
+        status: dossier.status,
+        searchText,
+        secondaryIds: [dossier.boxId, String(dossier.fromJobId), String(dossier.toJobId)],
+        dossier,
+      });
+    }
+
+    for (const project of projects) {
+      const dossierId = `${project.boxId}-${project.dossierNumber}`;
+      const historyKeywords = (project.statusHistory || [])
+        .map(h => `${h.status} ${h.note || ''} ${h.user || ''}`)
+        .join(' ');
+      const searchText = [
+        String(project.jobId),
+        `#${project.jobId}`,
+        `job ${project.jobId}`,
+        `project ${project.jobId}`,
+        `مشروع ${project.jobId}`,
+        project.boxId,
+        dossierId,
+        `box ${project.boxId}`,
+        `dossier ${project.dossierNumber}`,
+        `دوسيه ${project.dossierNumber}`,
+        `slot ${project.slotIndex + 1}`,
+        project.dateApproved || '',
+        project.sourceUpload || '',
+        statusKeywords(project.status),
+        historyKeywords,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      items.push({
+        uid: `project:${project.jobId}`,
+        type: 'project',
+        primaryId: String(project.jobId),
+        boxId: project.boxId,
+        dossierNumber: project.dossierNumber,
+        jobId: project.jobId,
+        status: project.status,
+        searchText,
+        secondaryIds: [project.boxId, dossierId, project.dateApproved || ''].filter(Boolean),
+        project,
+      });
+    }
+
+    return items;
+  }, [boxes, dossiers, projects]);
+
+  const searchArchive = useCallback(
+    (query: string, options?: { type?: SearchEntityType | 'all'; limit?: number }) => {
+      const normalizedQuery = query.trim().toLowerCase().replace(/^#(?=\d)/, '');
+      const filterType = options?.type ?? 'all';
+      const limit = options?.limit ?? 24;
+
+      if (!normalizedQuery) {
+        return {
+          results: [],
+          totalMatches: 0,
+          countsByType: { box: 0, dossier: 0, project: 0 },
+        };
+      }
+
+      const rawTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+      const tokens = rawTokens.map(t => t.replace(/^#(?=\d)/, ''));
+      const numericLookup = tokens.length === 1 && /^\d{4,}$/.test(tokens[0]) ? Number(tokens[0]) : null;
+
+      const scored: { item: ArchiveSearchItem; score: number }[] = [];
+      const countsByType: Record<SearchEntityType, number> = { box: 0, dossier: 0, project: 0 };
+
+      for (const item of searchIndex) {
+        const matchesAllTokens = tokens.every(token => item.searchText.includes(token));
+        const inRange =
+          numericLookup !== null &&
+          ((item.type === 'box' &&
+            item.box &&
+            numericLookup >= item.box.firstJobId &&
+            numericLookup <= item.box.lastJobId) ||
+            (item.type === 'dossier' &&
+              item.dossier &&
+              numericLookup >= item.dossier.fromJobId &&
+              numericLookup <= item.dossier.toJobId));
+
+        if (!matchesAllTokens && !inRange) continue;
+
+        countsByType[item.type] += 1;
+
+        if (filterType !== 'all' && item.type !== filterType) continue;
+
+        const primaryLower = item.primaryId.toLowerCase();
+        let score = 0;
+
+        if (primaryLower === normalizedQuery) {
+          score += 1000;
+        } else if (primaryLower.startsWith(normalizedQuery)) {
+          score += 500;
+        } else if (primaryLower.includes(normalizedQuery)) {
+          score += 250;
+        }
+
+        if (item.secondaryIds.some(sec => sec.toLowerCase() === normalizedQuery)) {
+          score += 180;
+        } else if (matchesAllTokens) {
+          score += 100;
+        } else if (inRange) {
+          score += 60;
+        }
+
+        if (item.type === 'box') score += 12;
+        else if (item.type === 'dossier') score += 8;
+
+        scored.push({ item, score });
+      }
+
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.item.type !== b.item.type) {
+          const order: Record<SearchEntityType, number> = { box: 0, dossier: 1, project: 2 };
+          return order[a.item.type] - order[b.item.type];
+        }
+        return a.item.primaryId.localeCompare(b.item.primaryId, undefined, { numeric: true });
+      });
+
+      const totalMatches = filterType === 'all' ? scored.length : countsByType[filterType];
+      return {
+        results: scored.slice(0, limit).map(entry => entry.item),
+        totalMatches,
+        countsByType,
+      };
+    },
+    [searchIndex]
+  );
+
   return (
     <ArchiveContext.Provider
       value={{
@@ -724,6 +942,8 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateUser,
         toggleUserStatus,
         deleteUser,
+        searchIndex,
+        searchArchive,
       }}
     >
       {children}

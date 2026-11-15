@@ -27,6 +27,7 @@ import {
 import { useArchive } from '../../context/ArchiveContext';
 import { IntercomLogo } from '../common/IntercomLogo';
 import { ArmsLogo } from '../common/ArmsLogo';
+import { GlobalSearch } from './GlobalSearch';
 
 export type ActiveTab =
   | 'dashboard'
@@ -327,9 +328,11 @@ export const TopNav: React.FC<TopNavProps> = ({
             )}
           </nav>
 
-          {/* Physical Right Zone: Notifications + User Account + ARMS PNG Logo */}
+          {/* Physical Right Zone: Global Search + Notifications + User Account + ARMS PNG Logo */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <div className="flex items-center gap-1 sm:gap-1.5">
+              <GlobalSearch onNavigate={onNavigate} />
+
               <button
                 type="button"
                 onClick={onOpenNotifications}

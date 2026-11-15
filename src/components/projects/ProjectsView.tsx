@@ -3,7 +3,7 @@
  * Columns: 1. Job ID · 2. Date Approved · 3. Project Status · 4. Actions
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, Eye, Edit2, Calendar, History, X, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { useArchive } from '../../context/ArchiveContext';
 import { Project, ProjectStatus } from '../../types';
@@ -31,14 +31,31 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ initialFilter }) => 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
 
+  useEffect(() => {
+    if (!initialFilter) return;
+    if (['Archived', 'Missing', 'Pending'].includes(initialFilter)) {
+      setStatusFilter(initialFilter);
+      setSearchTerm('');
+    } else {
+      setSearchTerm(initialFilter);
+      setStatusFilter('all');
+    }
+    setBoxFilter('all');
+    setCurrentPage(1);
+  }, [initialFilter]);
+
   const sortedBoxes = [...boxes].sort((a, b) => a.firstJobId - b.firstJobId);
 
   const filteredProjects = projects
     .filter(p => {
+      const term = searchTerm.trim().toLowerCase();
       const matchSearch =
-        String(p.jobId).includes(searchTerm) ||
-        (p.dateApproved && p.dateApproved.includes(searchTerm)) ||
-        p.boxId.toLowerCase().includes(searchTerm.toLowerCase());
+        !term ||
+        String(p.jobId).includes(term) ||
+        (p.dateApproved && p.dateApproved.toLowerCase().includes(term)) ||
+        p.boxId.toLowerCase().includes(term) ||
+        (p.sourceUpload && p.sourceUpload.toLowerCase().includes(term)) ||
+        p.status.toLowerCase().includes(term);
 
       if (!matchSearch) return false;
       if (statusFilter !== 'all' && p.status !== statusFilter) return false;

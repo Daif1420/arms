@@ -117,3 +117,21 @@ export interface LabelData {
   fromJobId: number;
   toJobId: number;
 }
+
+export type SearchEntityType = 'box' | 'dossier' | 'project';
+
+export interface ArchiveSearchItem {
+  uid: string;
+  type: SearchEntityType;
+  primaryId: string;
+  boxId: string;
+  dossierNumber?: number;
+  jobId?: number;
+  status: string;
+  searchText: string;
+  secondaryIds: string[];
+  box?: Box;
+  dossier?: Dossier;
+  project?: Project;
+}
+
