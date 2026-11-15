@@ -129,6 +129,22 @@ const safeUser = (u: any) => ({
   lastLogin: u.last_login || 'Never',
 });
 
+function buildLoginAuditEntry(u: Record<string, any>, action = 'User Login') {
+  const username = String(u.username || '');
+  const name = String(u.name || username);
+  const role = String(u.role || 'Viewer');
+  return {
+    id: `aud-${Date.now()}-${randomBytes(4).toString('hex')}`,
+    userId: String(u.id || ''),
+    userName: name,
+    action,
+    recordType: 'User',
+    recordId: `@${username}`,
+    timestamp: new Date().toLocaleString(),
+    details: `User ${name} (@${username}, ${role}) signed in`,
+  };
+}
+
 function databaseUrl(): string {
   const strip = (v: string) => v.trim().replace(/^['"]+|['"]+$/g, '').trim();
   let value = strip(process.env.DATABASE_URL || '');
@@ -382,6 +398,7 @@ async function startServer() {
             return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة.' });
           }
           u.last_login = new Date().toISOString();
+          db.auditLogs.unshift(buildLoginAuditEntry(u));
           saveLocalDb(db);
           const session = createSession({ id: u.id, username: u.username });
           setSessionCookie(req, res, session.value, session.maxAge);
@@ -435,6 +452,8 @@ async function startServer() {
         const inserted = await sql`INSERT INTO arms_users (id, username, email, name, role, active, password_hash, last_login)
           VALUES (${id}, ${String(username).trim().toLowerCase()}, ${String(email).trim()}, ${String(name).trim()}, 'System Admin', TRUE, ${passwordHash}, NOW())
           RETURNING id, username, email, name, role, active, last_login`;
+        const setupAudit = buildLoginAuditEntry(inserted[0], 'Initial Setup & Login');
+        await sql`INSERT INTO arms_audit_logs (id, data) VALUES (${setupAudit.id}, ${JSON.stringify(setupAudit)}::text::jsonb) ON CONFLICT (id) DO NOTHING`;
         const session = createSession({ id, username: inserted[0].username });
         setSessionCookie(req, res, session.value, session.maxAge);
         return res.status(201).json({ user: safeUser(inserted[0]), storageMode: 'postgres', sessionToken: session.value });
@@ -469,6 +488,8 @@ async function startServer() {
           return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة.' });
         }
         const updated = await sql`UPDATE arms_users SET last_login = NOW() WHERE id = ${user.id} RETURNING id, username, email, name, role, active, last_login`;
+        const loginAudit = buildLoginAuditEntry(updated[0]);
+        await sql`INSERT INTO arms_audit_logs (id, data) VALUES (${loginAudit.id}, ${JSON.stringify(loginAudit)}::text::jsonb) ON CONFLICT (id) DO NOTHING`;
         const session = createSession({ id: user.id, username: user.username });
         setSessionCookie(req, res, session.value, session.maxAge);
         return res.json({ user: safeUser(updated[0]), storageMode: 'postgres', sessionToken: session.value });
@@ -700,7 +721,11 @@ async function startServer() {
           db.uploadHistory = checked.state.uploadHistory;
           db.notifications = checked.state.notifications;
           if (user.role === 'System Admin') {
-            db.auditLogs = checked.state.auditLogs;
+            const incomingIds = new Set(checked.state.auditLogs.map((a: any) => a.id));
+            const serverLoginLogs = db.auditLogs.filter(
+              (a: any) => ['User Login', 'Initial Setup & Login'].includes(a?.action) && !incomingIds.has(a.id)
+            );
+            db.auditLogs = [...serverLoginLogs, ...checked.state.auditLogs];
           } else {
             // Non-admins never see the audit log: append only genuinely new entries, keep existing ones untouched.
             const known = new Set(db.auditLogs.map((a: any) => a.id));
@@ -774,7 +799,16 @@ async function startServer() {
           const stateJson = JSON.stringify(checked.state);
           const saved =
             user.role === 'System Admin'
-              ? await sql`SELECT public.arms_save_state(${stateJson}::text::jsonb, ${expectedRevision}) AS revision`
+              ? await sql`SELECT public.arms_save_state(
+                  jsonb_set(
+                    ${stateJson}::text::jsonb,
+                    '{auditLogs}',
+                    COALESCE((SELECT jsonb_agg(a.data) FROM arms_audit_logs a
+                              WHERE a.data->>'action' IN ('User Login', 'Initial Setup & Login')
+                                AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(${stateJson}::text::jsonb->'auditLogs') AS x WHERE x->>'id' = a.id)), '[]'::jsonb)
+                    || COALESCE(${stateJson}::text::jsonb->'auditLogs', '[]'::jsonb)
+                  ),
+                  ${expectedRevision}) AS revision`
               : await sql`SELECT public.arms_save_state(
                   jsonb_set(
                     ${stateJson}::text::jsonb,

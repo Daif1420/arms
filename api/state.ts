@@ -231,7 +231,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const stateJson = JSON.stringify(state);
         const saved = await withTimeout(
           user.role === 'System Admin'
-            ? sql`SELECT public.arms_save_state(${stateJson}::text::jsonb, ${expectedRevision}) AS revision`
+            ? sql`SELECT public.arms_save_state(
+                    jsonb_set(
+                      ${stateJson}::text::jsonb,
+                      '{auditLogs}',
+                      COALESCE((SELECT jsonb_agg(a.data) FROM arms_audit_logs a
+                                WHERE a.data->>'action' IN ('User Login', 'Initial Setup & Login')
+                                  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(${stateJson}::text::jsonb->'auditLogs') AS x WHERE x->>'id' = a.id)), '[]'::jsonb)
+                      || COALESCE(${stateJson}::text::jsonb->'auditLogs', '[]'::jsonb)
+                    ),
+                    ${expectedRevision}) AS revision`
             : sql`SELECT public.arms_save_state(
                     jsonb_set(
                       ${stateJson}::text::jsonb,

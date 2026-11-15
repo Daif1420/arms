@@ -16,6 +16,22 @@ const safeUser = (u: any) => ({
   lastLogin: u.last_login || 'Never',
 });
 
+function buildLoginAuditEntry(u: Record<string, any>, action = 'User Login') {
+  const username = String(u.username || '');
+  const name = String(u.name || username);
+  const role = String(u.role || 'Viewer');
+  return {
+    id: `aud-${Date.now()}-${randomBytes(4).toString('hex')}`,
+    userId: String(u.id || ''),
+    userName: name,
+    action,
+    recordType: 'User',
+    recordId: `@${username}`,
+    timestamp: new Date().toLocaleString(),
+    details: `User ${name} (@${username}, ${role}) signed in`,
+  };
+}
+
 async function hashPassword(password: string) {
   const salt = randomBytes(16);
   const key = (await scrypt(password, salt, 64)) as Buffer;
@@ -111,6 +127,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const inserted = await sql`INSERT INTO arms_users (id, username, email, name, role, active, password_hash, last_login)
         VALUES (${id}, ${String(username).trim().toLowerCase()}, ${String(email).trim()}, ${String(name).trim()}, 'System Admin', TRUE, ${passwordHash}, NOW())
         RETURNING id, username, email, name, role, active, last_login`;
+      const setupAudit = buildLoginAuditEntry(inserted[0], 'Initial Setup & Login');
+      await sql`INSERT INTO arms_audit_logs (id, data) VALUES (${setupAudit.id}, ${JSON.stringify(setupAudit)}::text::jsonb) ON CONFLICT (id) DO NOTHING`;
       const session = createSession({ id, username: inserted[0].username });
       res.setHeader('Set-Cookie', sessionCookie(session.value, session.maxAge, req));
       return res.status(201).json({ user: safeUser(inserted[0]), sessionToken: session.value });
@@ -160,6 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         attempts.length ? sql`DELETE FROM arms_login_attempts WHERE username = ${username}` : Promise.resolve(),
         sql`UPDATE arms_users SET last_login = NOW() WHERE id = ${user.id} RETURNING id, username, email, name, role, active, last_login`,
       ]);
+      const loginAudit = buildLoginAuditEntry(updated[0]);
+      await sql`INSERT INTO arms_audit_logs (id, data) VALUES (${loginAudit.id}, ${JSON.stringify(loginAudit)}::text::jsonb) ON CONFLICT (id) DO NOTHING`;
       const session = createSession({ id: user.id, username: user.username });
       res.setHeader('Set-Cookie', sessionCookie(session.value, session.maxAge, req));
       return res.status(200).json({ user: safeUser(updated[0]), sessionToken: session.value });
