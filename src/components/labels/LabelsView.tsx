@@ -30,18 +30,18 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
   // Automatic mode state
   const defaultBox = boxes.find(b => b.boxCode === initialBoxCode) || boxes[0];
   const [selectedBoxCode, setSelectedBoxCode] = useState<string>(
-    initialBoxCode?.includes(':') ? initialBoxCode.split(':')[0] : defaultBox?.boxCode || 'D42'
+    initialBoxCode?.includes(':') ? initialBoxCode.split(':')[0] : defaultBox?.boxCode || 'D41'
   );
 
   // Manual mode state
-  const [manualBoxCode, setManualBoxCode] = useState('D42');
-  const [manualFirstJobId, setManualFirstJobId] = useState(35500);
+  const [manualBoxCode, setManualBoxCode] = useState('D41');
+  const [manualFirstJobId, setManualFirstJobId] = useState(35200);
 
   // Single dossier mode state
   const [singleDossierNumber, setSingleDossierNumber] = useState<number>(
     initialBoxCode?.includes(':') ? Number(initialBoxCode.split(':')[1]) : 1
   );
-  const [singleDossierFirstJobId, setSingleDossierFirstJobId] = useState(35500);
+  const [singleDossierFirstJobId, setSingleDossierFirstJobId] = useState(35200);
 
   // Current active label in preview carousel (0 = Box Label, 1..6 = Dossiers 1..6)
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
@@ -57,7 +57,7 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
 
   if (mode === 'automatic') {
     const boxCode = currentBox ? currentBox.boxCode : selectedBoxCode;
-    const firstId = currentBox ? currentBox.firstJobId : 35500;
+    const firstId = currentBox ? currentBox.firstJobId : 35200;
     activeLabels = buildBoxLabelPackage(boxCode, firstId);
   } else if (mode === 'manual') {
     activeLabels = buildBoxLabelPackage(manualBoxCode.toUpperCase(), Number(manualFirstJobId));
@@ -354,7 +354,9 @@ export const LabelsView: React.FC<LabelsViewProps> = ({ initialBoxCode }) => {
                       onChange={e => {
                         const dNum = Number(e.target.value);
                         setSingleDossierNumber(dNum);
-                        setSingleDossierFirstJobId(35500 + (dNum - 1) * 50);
+                        const match = /^D(\d+)$/i.exec(manualBoxCode.trim());
+                        const base = match ? 35200 + (Number(match[1]) - 41) * 300 : 35200;
+                        setSingleDossierFirstJobId(base + (dNum - 1) * 50);
                       }}
                       className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg font-bold focus:outline-none focus:border-[#0B56A8]"
                     >

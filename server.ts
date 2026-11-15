@@ -243,17 +243,17 @@ function validateStatePayload(parsed: any): { error?: string; state?: any } {
   };
   const expectedBox = (boxCode: string, firstJobId: number) => {
     const match = /^D(\d+)$/.exec(boxCode || '');
-    if (!match || !Number.isInteger(firstJobId) || firstJobId < 35500 || (firstJobId - 35500) % 300 !== 0) {
+    if (!match || !Number.isInteger(firstJobId) || firstJobId < 35200 || (firstJobId - 35200) % 300 !== 0) {
       return false;
     }
-    return Number(match[1]) === 42 + (firstJobId - 35500) / 300;
+    return Number(match[1]) === 41 + (firstJobId - 35200) / 300;
   };
   const boxCodes = new Set(state.boxes.filter((b: any) => b && typeof b.boxCode === 'string').map((b: any) => b.boxCode));
   if (
     boxCodes.size !== state.boxes.length ||
     state.boxes.some((b: any) => !b || !expectedBox(b.boxCode, b.firstJobId) || b.lastJobId !== b.firstJobId + 299)
   ) {
-    return { error: 'Invalid box range. D42 must start at 35500 and each box contains exactly 300 consecutive IDs.' };
+    return { error: 'Invalid box range. D41 must start at 35200 (D42 at 35500) and each box contains exactly 300 consecutive IDs.' };
   }
   for (const b of state.boxes as any[]) {
     const n = Number(String(b.boxCode).slice(1));
@@ -263,17 +263,17 @@ function validateStatePayload(parsed: any): { error?: string; state?: any } {
   }
   const seenIds = new Set<number>();
   for (const p of state.projects as any[]) {
-    if (!p || !Number.isInteger(p.jobId) || p.jobId < 35500 || !['Archived', 'Missing', 'Pending'].includes(p.status)) {
+    if (!p || !Number.isInteger(p.jobId) || p.jobId < 35200 || !['Archived', 'Missing', 'Pending'].includes(p.status)) {
       return { error: 'Invalid project record.' };
     }
-    const index = Math.floor((p.jobId - 35500) / 300);
-    const expectedCode = `D${42 + index}`;
-    const expectedDossier = Math.floor(((p.jobId - 35500) % 300) / 50) + 1;
+    const index = Math.floor((p.jobId - 35200) / 300);
+    const expectedCode = `D${41 + index}`;
+    const expectedDossier = Math.floor(((p.jobId - 35200) % 300) / 50) + 1;
     if (
       !p ||
       p.boxId !== expectedCode ||
       p.dossierNumber !== expectedDossier ||
-      p.slotIndex !== (p.jobId - 35500) % 50 ||
+      p.slotIndex !== (p.jobId - 35200) % 50 ||
       !boxCodes.has(expectedCode) ||
       seenIds.has(p.jobId)
     ) {

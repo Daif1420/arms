@@ -342,16 +342,16 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const createBox = (boxCode: string, firstJobId: number): Box => {
     const match = /^D(\d+)$/.exec(boxCode);
-    const expectedNumber = 42 + Math.floor((firstJobId - 35500) / 300);
+    const expectedNumber = 41 + Math.floor((firstJobId - 35200) / 300);
     if (
       !match ||
-      firstJobId < 35500 ||
-      (firstJobId - 35500) % 300 !== 0 ||
+      firstJobId < 35200 ||
+      (firstJobId - 35200) % 300 !== 0 ||
       Number(match[1]) !== expectedNumber ||
       boxes.some(b => b.boxCode === boxCode) ||
       (expectedNumber > 42 && !boxes.some(b => b.boxCode === `D${expectedNumber - 1}`))
     ) {
-      throw new Error('Box must follow fixed sequence: D42 starts at 35500 and each next box advances exactly 300 Job IDs.');
+      throw new Error('Box must follow fixed sequence: D41 starts at 35200, D42 starts at 35500, and each next box advances exactly 300 Job IDs.');
     }
     const emptyMap = new Map<number, { dateApproved: string | null; sourceUpload?: string; status?: ProjectStatus }>();
     const { box: newBox, dossiers: newDossiers, projects: newProjects } = buildBoxStructure(boxCode, firstJobId, emptyMap);
@@ -370,8 +370,8 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fileName: string,
     targetBoxCode?: string
   ) => {
-    const FIRST_BOX_ID = 35500;
-    const FIRST_BOX_NUMBER = 42;
+    const FIRST_BOX_ID = 35200;
+    const FIRST_BOX_NUMBER = 41;
     const BOX_SIZE = 300;
     let importedCount = 0;
     let duplicateCount = 0;
@@ -401,7 +401,7 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     for (const [boxIndex, rows] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
       const expectedPrevious = `D${FIRST_BOX_NUMBER + boxIndex - 1}`;
-      if (boxIndex > 0 && !updatedBoxes.some(b => b.boxCode === expectedPrevious)) {
+      if (boxIndex > 1 && !updatedBoxes.some(b => b.boxCode === expectedPrevious)) {
         rejectedCount += rows.length;
         continue;
       }
@@ -475,7 +475,7 @@ export const ArchiveProvider: React.FC<{ children: React.ReactNode }> = ({ child
       rejectedCount,
       errors: [
         ...(duplicateCount ? [`${duplicateCount} duplicate records skipped; existing status preserved`] : []),
-        ...(rejectedCount ? [`${rejectedCount} records rejected: outside D42+ fixed ranges or invalid Job ID`] : []),
+        ...(rejectedCount ? [`${rejectedCount} records rejected: outside D41+ (35200+) fixed ranges or invalid Job ID`] : []),
       ],
       status: duplicateCount || rejectedCount ? 'Completed with warnings' : 'Completed',
     };

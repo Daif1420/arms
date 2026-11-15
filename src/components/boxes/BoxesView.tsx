@@ -29,18 +29,33 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBoxCode, setNewBoxCode] = useState('');
-  const [newFirstJobId, setNewFirstJobId] = useState(35500);
+  const [newFirstJobId, setNewFirstJobId] = useState(35200);
+
+  const getNextBoxSuggestion = () => {
+    if (!boxes.some(b => b.boxCode === 'D41')) {
+      return { code: 'D41', firstJobId: 35200 };
+    }
+    const maxNum = Math.max(
+      41,
+      ...boxes.map(b => {
+        const m = /^D(\d+)$/.exec(b.boxCode);
+        return m ? Number(m[1]) : 41;
+      })
+    );
+    const nextNum = maxNum + 1;
+    return { code: `D${nextNum}`, firstJobId: 35200 + (nextNum - 41) * 300 };
+  };
 
   useEffect(() => {
     if (!initialOpenCreate) return;
     if (currentUser.role === 'System Admin') {
-      const nextNum = 42 + boxes.length;
-      setNewBoxCode(`D${nextNum}`);
-      setNewFirstJobId(35500 + boxes.length * 300);
+      const next = getNextBoxSuggestion();
+      setNewBoxCode(next.code);
+      setNewFirstJobId(next.firstJobId);
       setShowCreateModal(true);
     }
     onCreateModalConsumed?.();
-  }, [initialOpenCreate, currentUser.role, boxes.length, onCreateModalConsumed]);
+  }, [initialOpenCreate, currentUser.role, boxes, onCreateModalConsumed]);
 
   const [forceCloseModalBox, setForceCloseModalBox] = useState<Box | null>(null);
   const [forceCloseReason, setForceCloseReason] = useState('');
@@ -100,9 +115,9 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
           {currentUser.role === 'System Admin' && (
             <button
               onClick={() => {
-                const nextNum = 42 + boxes.length;
-                setNewBoxCode(`D${nextNum}`);
-                setNewFirstJobId(35500 + boxes.length * 300);
+                const next = getNextBoxSuggestion();
+                setNewBoxCode(next.code);
+                setNewFirstJobId(next.firstJobId);
                 setShowCreateModal(true);
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0B56A8] hover:bg-[#094488] rounded-lg transition-colors shadow-xs"
@@ -384,12 +399,12 @@ export const BoxesView: React.FC<BoxesViewProps> = ({
             <form onSubmit={handleCreateBox} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-neutral-300 mb-1">
-                  {language === 'ar' ? 'كود البوكس (مثال D42)' : 'Box Code (e.g. D42)'}
+                  {language === 'ar' ? 'كود البوكس (مثال D41)' : 'Box Code (e.g. D41)'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="D42"
+                  placeholder="D41"
                   value={newBoxCode}
                   onChange={e => setNewBoxCode(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg uppercase focus:outline-none focus:border-[#0B56A8]"

@@ -38,10 +38,10 @@ function MainApp() {
   } = useArchive();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [selectedBoxId, setSelectedBoxId] = useState<string>('D42');
-  const [selectedDossierId, setSelectedDossierId] = useState<string>('D42-1');
+  const [selectedBoxId, setSelectedBoxId] = useState<string>('D41');
+  const [selectedDossierId, setSelectedDossierId] = useState<string>('D41-1');
   const [projectsFilter, setProjectsFilter] = useState<string>('');
-  const [labelInitialBoxCode, setLabelInitialBoxCode] = useState<string>('D42');
+  const [labelInitialBoxCode, setLabelInitialBoxCode] = useState<string>('D41');
   const [openBoxCreateModal, setOpenBoxCreateModal] = useState(false);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);

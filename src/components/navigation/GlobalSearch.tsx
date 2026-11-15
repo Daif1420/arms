@@ -257,8 +257,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
               onKeyDown={handleInputKeyDown}
               placeholder={
                 isAr
-                  ? 'بحث شامل: ابحث برقم البوكس (D42)، الدوسيه (D42-1)، رقم المشروع (35500)، أو أي كلمة مفتاحية...'
-                  : 'Global search: find any Box (D42), Dossier (D42-1), Project ID (35500), status, date, or keyword...'
+                  ? 'بحث شامل: ابحث برقم البوكس (D41)، الدوسيه (D41-1)، رقم المشروع (35200)، أو أي كلمة مفتاحية...'
+                  : 'Global search: find any Box (D41), Dossier (D41-1), Project ID (35200), status, date, or keyword...'
               }
               aria-label={isAr ? 'البحث الشامل في الأرشيف' : 'Global archive search'}
               className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-neutral-500 focus:outline-none"
@@ -379,8 +379,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
                 </div>
                 <p className="text-xs text-slate-400 dark:text-neutral-500">
                   {isAr
-                    ? 'جرب البحث برقم المشروع (مثل 35500) أو رمز البوكس (مثل D42) أو حالة الأرشفة.'
-                    : 'Try searching by Job ID (e.g. 35500), Box code (e.g. D42), Dossier ID (D42-1), or status.'}
+                    ? 'جرب البحث برقم المشروع (مثل 35200) أو رمز البوكس (مثل D41) أو حالة الأرشفة.'
+                    : 'Try searching by Job ID (e.g. 35200), Box code (e.g. D41), Dossier ID (D41-1), or status.'}
                 </p>
               </div>
             ) : (
